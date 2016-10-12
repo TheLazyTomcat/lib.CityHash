@@ -20,6 +20,6 @@
 
 //------------------------------------------------------------------------------
 
-// Do not chnage following lines
+// Do not change following lines
 {$Q-}
 {$R-}
