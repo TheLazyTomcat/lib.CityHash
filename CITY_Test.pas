@@ -27,9 +27,9 @@
 ===============================================================================}
 unit CITY_Test;
 
-interface
-
 {$INCLUDE 'CITY_defs.inc'}
+
+interface
 
 Function RunTests: Integer;
 

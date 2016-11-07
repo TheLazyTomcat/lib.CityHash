@@ -23,3 +23,7 @@
 // Do not change following lines
 {$Q-}
 {$R-}
+
+{$IFDEF FPC}
+  {$MODE ObjFPC}{$H+}
+{$ENDIF}

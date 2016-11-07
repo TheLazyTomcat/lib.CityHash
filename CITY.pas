@@ -27,9 +27,9 @@
 ===============================================================================}
 unit CITY;
 
-interface
-
 {$INCLUDE 'CITY_defs.inc'}
+
+interface
 
 uses
   AuxTypes;
