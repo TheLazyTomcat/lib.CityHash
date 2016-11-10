@@ -24,6 +24,10 @@
   reference implementation. Functionality of used intrinsics is simulated in
   software.
 
+  Dependencies:
+    AuxTypes - github.com/ncs-sniper/Lib.AuxTypes
+    BitOps   - github.com/ncs-sniper/Lib.BitOps
+
 ===============================================================================}
 unit CITY_Test;
 
