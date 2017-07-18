@@ -25,8 +25,11 @@
   software.
 
   Dependencies:
-    AuxTypes - github.com/ncs-sniper/Lib.AuxTypes
-    BitOps   - github.com/ncs-sniper/Lib.BitOps
+    AuxTypes    - github.com/ncs-sniper/Lib.AuxTypes
+    BitOps      - github.com/ncs-sniper/Lib.BitOps
+  * SimpleCPUID - github.com/ncs-sniper/Lib.SimpleCPUID
+
+  SimpleCPUID might not be needed, see BitOps library for details.
 
 ===============================================================================}
 unit CITY;
