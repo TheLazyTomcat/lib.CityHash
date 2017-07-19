@@ -9,9 +9,9 @@
 
   CITY hash calculation
 
-  ©František Milt 2016-10-12
+  ©František Milt 2017-07-19
 
-  Version 1.0
+  Version 1.0.1
 
   This is only naive reimplementation of reference code that can be found in
   this repository:
@@ -20,16 +20,16 @@
 
   Version 1.1.1 of the hash is implemented, but you can switch to version 1.0.3
   by activating VER_1_0_3 define in the CITY_defs.inc file.
-  Also note that CRC functions are not using SSE4 instructions as in the
-  reference implementation. Functionality of used intrinsics is simulated in
-  software.
 
   Dependencies:
     AuxTypes    - github.com/ncs-sniper/Lib.AuxTypes
     BitOps      - github.com/ncs-sniper/Lib.BitOps
   * SimpleCPUID - github.com/ncs-sniper/Lib.SimpleCPUID
 
-  SimpleCPUID might not be needed, see BitOps library for details.
+  SimpleCPUID is required only when both AllowCRCExtension and CRC_Functions
+  symbols are defined and PurePascal symbol is not defined.
+  Also, it might be needed by BitOps library, depending whether ASM extensions
+  are allowed there.
 
 ===============================================================================}
 unit CITY_Test;

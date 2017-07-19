@@ -9,9 +9,9 @@
 
   CITY hash calculation
 
-  ©František Milt 2016-10-12
+  ©František Milt 2017-07-19
 
-  Version 1.0
+  Version 1.0.1
 
   This is only naive reimplementation of reference code that can be found in
   this repository:
@@ -20,16 +20,16 @@
 
   Version 1.1.1 of the hash is implemented, but you can switch to version 1.0.3
   by activating VER_1_0_3 define in the CITY_defs.inc file.
-  Also note that CRC functions are not using SSE4 instructions as in the
-  reference implementation. Functionality of used intrinsics is simulated in
-  software.
 
   Dependencies:
     AuxTypes    - github.com/ncs-sniper/Lib.AuxTypes
     BitOps      - github.com/ncs-sniper/Lib.BitOps
   * SimpleCPUID - github.com/ncs-sniper/Lib.SimpleCPUID
 
-  SimpleCPUID might not be needed, see BitOps library for details.
+  SimpleCPUID is required only when both AllowCRCExtension and CRC_Functions
+  symbols are defined and PurePascal symbol is not defined.
+  Also, it might be needed by BitOps library, depending whether ASM extensions
+  are allowed there.
 
 ===============================================================================}
 unit CITY;
@@ -98,7 +98,10 @@ const
 implementation
 
 uses
-  BitOps;
+  BitOps
+{$IF Defined(AllowCRCExtension) and Defined(CRC_Functions) and not Defined(PurePascal)}
+  , SimpleCPUID
+{$IFEND};
 
 Function UInt128Make(Low,High: UInt64): UInt128;
 begin
@@ -858,7 +861,7 @@ end;
 {$IFDEF CRC_Functions}
 
 // Software implemntation of the SSE4.2 intrinsic
-Function _mm_crc32_u64(crc,v: UInt64): UInt64;
+Function _mm_crc32_u64_PAS(crc,v: UInt64): UInt64;
 const
   CRCTable: array[Byte] of UInt32 = (
     $00000000, $F26B8303, $E13B70F7, $1350F3F4, $C79A971F, $35F1141C, $26A1E7E8, $D4CA64EB,
@@ -905,6 +908,37 @@ Result := UInt64(Temp);
 end;
 
 //------------------------------------------------------------------------------
+
+{$IFNDEF PurePascal}
+
+Function _mm_crc32_u64_ASM(crc,v: UInt64): UInt64; register; assembler;
+asm
+{$IFDEF x64}
+    CRC32   crc,  v
+    MOV     RAX,  crc
+{$ELSE}
+    MOV     EAX,  dword ptr [CRC]
+
+  {$IFDEF ASM_MachineCode}
+    DB  $F2, $0F, $38, $F1, $45, $08    // CRC32   EAX,  dword ptr [EBP + 8]
+    DB  $F2, $0F, $38, $F1, $45, $0C    // CRC32   EAX,  dword ptr [EPB + 12]
+  {$ELSE}
+    CRC32   EAX,  dword ptr [v]
+    CRC32   EAX,  dword ptr [v + 4]
+  {$ENDIF}
+
+    XOR     EDX,  EDX
+{$ENDIF}
+end;
+
+{$ENDIF}
+
+//------------------------------------------------------------------------------
+
+var
+  _mm_crc32_u64:  Function(crc,v: UInt64): UInt64;
+
+//==============================================================================
 
 // Requires len >= 240.
 procedure CityHashCrc256Long(s: Pointer; len: TMemSize; seed: UInt32; out result: UInt256);
@@ -1135,6 +1169,27 @@ else
   end;
 end;
 
-{$ENDIF}
+//==============================================================================
+
+procedure Initialize;
+begin
+_mm_crc32_u64 := _mm_crc32_u64_PAS;
+{$IF Defined(AllowCRCExtension) and not Defined(PurePascal)}
+with TSimpleCPUID.Create do
+try
+  If Info.SupportedExtensions.CRC32 then
+    _mm_crc32_u64 := _mm_crc32_u64_ASM;
+finally
+  Free;
+end;
+{$IFEND}
+end;
+
+//------------------------------------------------------------------------------
+
+initialization
+  Initialize;
+
+{$ENDIF CRC_Functions}
 
 end.
