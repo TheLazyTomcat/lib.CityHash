@@ -45,11 +45,12 @@
 {$IFDEF FPC}
   {$MODE Delphi}
   {$ASMMODE Intel}
+  {$DEFINE FPC_DisableWarns}
 {$ENDIF}
 
 {$IF not Defined(FPC) and not Defined(x64)}
   {$DEFINE ASM_MachineCode}
 {$IFEND}
 
-{$Q-}
-{$R-}
+{$Q-} // turn off overflow checks
+{$R-} // turn off range checks

@@ -103,6 +103,15 @@ uses
   , SimpleCPUID
 {$IFEND};
 
+{$IFDEF FPC_DisableWarns}
+  {$WARN 4055 OFF} // Conversion between ordinals and pointers is not portable
+  {$WARN 4056 OFF} // Conversion between ordinals and pointers is not portable
+  // overflow checks are turned off, overflow errors are unlikely to happen
+  {$WARN 4079 OFF} // Converting the operands to "$1" before doing the add could prevent overflow errors.
+  {$WARN 4081 OFF} // Converting the operands to "$1" before doing the multiply could prevent overflow errors.
+  {$WARN 5057 OFF} // Local variable "$1" does not seem to be initialized
+{$ENDIF}
+
 Function UInt128Make(Low,High: UInt64): UInt128;
 begin
 Result.Low := Low;
@@ -199,7 +208,7 @@ end;
 
 Function Fetch32(Addr: PtrUInt): UInt32; overload;
 begin
-Result := uint32_in_expected_order(UNALIGNED_LOAD32({%H-}Pointer(Addr)));
+Result := uint32_in_expected_order(UNALIGNED_LOAD32(Pointer(Addr)));
 end;
 
 //------------------------------------------------------------------------------
@@ -213,7 +222,7 @@ end;
 
 Function Fetch64(Addr: PtrUInt): UInt64; overload;
 begin
-Result := uint64_in_expected_order(UNALIGNED_LOAD64({%H-}Pointer(Addr)));
+Result := uint64_in_expected_order(UNALIGNED_LOAD64(Pointer(Addr)));
 end;
 
 //==============================================================================
@@ -306,12 +315,12 @@ Function Hash32Len13to24(s: Pointer; len: TMemSize): UInt32;
 var
   a,b,c,d,e,f,h:  UInt32;
 begin
-a := Fetch32({%H-}PtrUInt(s) - 4 + (len shr 1));
-b := Fetch32({%H-}PtrUInt(s) + 4);
-c := Fetch32({%H-}PtrUInt(s) + len {%H-}- 8);
-d := Fetch32({%H-}PtrUInt(s) + (len shr 1));
+a := Fetch32(PtrUInt(s) - 4 + (len shr 1));
+b := Fetch32(PtrUInt(s) + 4);
+c := Fetch32(PtrUInt(s) + len - 8);
+d := Fetch32(PtrUInt(s) + (len shr 1));
 e := Fetch32(s);
-f := Fetch32({%H-}PtrUInt(s) + len {%H-}- 4);
+f := Fetch32(PtrUInt(s) + len - 4);
 h := len;
 result := fmix(Mur(f,Mur(e,Mur(d,Mur(c,Mur(b,Mur(a,h)))))));
 end;
@@ -329,8 +338,8 @@ c := 9;
 If Len > 0 then
   For i := 0 to Pred(Len) do
     begin
-      v := {%H-}PInt8({%H-}PtrUInt(s) + i)^;
-      b := Int64(b * c1) {%H-}+ v;
+      v := PInt8(PtrUInt(s) + i)^;
+      b := Int64(b * c1) + v;
       c := c xor b;
     end;
 Result := fmix(Mur(b,Mur(len,c)));    
@@ -344,8 +353,8 @@ var
 begin
 a := len; b := len * 5; c := 9; d := b;
 a := a + Fetch32(s);
-b := b + Fetch32({%H-}PtrUInt(s) + len {%H-}- 4);
-c := c + Fetch32({%H-}PtrUInt(s) + ((len shr 1) and 4));
+b := b + Fetch32(PtrUInt(s) + len - 4);
+c := c + Fetch32(PtrUInt(s) + ((len shr 1) and 4));
 Result := fmix(Mur(c,Mur(b,Mur(a,d))));
 end;
 
@@ -369,11 +378,11 @@ If len <= 24 then
   end;
 // len > 24
 h := len; g := c1 * len; f := g;
-a0 := Rotate32(Fetch32({%H-}PtrUInt(s) + len {%H-}- 4) * c1,17) * c2;
-a1 := Rotate32(Fetch32({%H-}PtrUInt(s) + len {%H-}- 8) * c1,17) * c2;
-a2 := Rotate32(Fetch32({%H-}PtrUInt(s) + len {%H-}- 16) * c1,17) * c2;
-a3 := Rotate32(Fetch32({%H-}PtrUInt(s) + len {%H-}- 12) * c1,17) * c2;
-a4 := Rotate32(Fetch32({%H-}PtrUInt(s) + len {%H-}- 20) * c1,17) * c2;
+a0 := Rotate32(Fetch32(PtrUInt(s) + len - 4) * c1,17) * c2;
+a1 := Rotate32(Fetch32(PtrUInt(s) + len - 8) * c1,17) * c2;
+a2 := Rotate32(Fetch32(PtrUInt(s) + len - 16) * c1,17) * c2;
+a3 := Rotate32(Fetch32(PtrUInt(s) + len - 12) * c1,17) * c2;
+a4 := Rotate32(Fetch32(PtrUInt(s) + len - 20) * c1,17) * c2;
 h := h xor a0;
 h := Rotate32(h,19);
 h := h * 5 + $e6546b64;
@@ -392,10 +401,10 @@ f := f * 5 + $e6546b64;
 iters := (len - 1) div 20;
 repeat
   a0 := Rotate32(Fetch32(s) * c1,17) * c2;
-  a1 := Fetch32({%H-}PtrUInt(s) + 4);
-  a2 := Rotate32(Fetch32({%H-}PtrUInt(s) + 8) * c1,17) * c2;
-  a3 := Rotate32(Fetch32({%H-}PtrUInt(s) + 12) * c1,17) * c2;
-  a4 := Fetch32({%H-}PtrUInt(s) + 16);
+  a1 := Fetch32(PtrUInt(s) + 4);
+  a2 := Rotate32(Fetch32(PtrUInt(s) + 8) * c1,17) * c2;
+  a3 := Rotate32(Fetch32(PtrUInt(s) + 12) * c1,17) * c2;
+  a4 := Fetch32(PtrUInt(s) + 16);
   h := h xor a0;
   h := Rotate32(h,18);
   h := h * 5 + $e6546b64;
@@ -414,7 +423,7 @@ repeat
   h := EndianSwap(h);
   f := f + a0;
   PERMUTE3(f,h,g);
-  s := {%H-}Pointer({%H-}PtrUInt(s) + 20);
+  s := Pointer(PtrUInt(s) + 20);
   Dec(iters);
 until iters <= 0;
 g := Rotate32(g,11) * c1;
@@ -501,8 +510,8 @@ case len of
   1..3:
     begin
       a8 := PUInt8(s)^;
-      b8 := {%H-}PUInt8({%H-}PtrUInt(s) + (len shr 1))^;
-      c8 := {%H-}PUInt8({%H-}PtrUInt(s) + (len - 1))^;
+      b8 := PUInt8(PtrUInt(s) + (len shr 1))^;
+      c8 := PUInt8(PtrUInt(s) + (len - 1))^;
       y := UInt32(a8) + UInt32(UInt32(b8) shl 8);
       z := len + UInt32(UInt32(c8) shl 2);
       Result := ShiftMix((y * k2) xor (z * k3)) * k2;
@@ -510,12 +519,12 @@ case len of
   4..8:
     begin
       a := Fetch32(s);
-      Result := HashLen16(len + UInt64(a shl 3),Fetch32({%H-}PtrUInt(s) + len {%H-}- 4));
+      Result := HashLen16(len + UInt64(a shl 3),Fetch32(PtrUInt(s) + len - 4));
     end;
   9..High(len):
     begin
       a := Fetch64(s);
-      b := Fetch64({%H-}PtrUInt(s) + len {%H-}- 8);
+      b := Fetch64(PtrUInt(s) + len - 8);
       Result := HashLen16(a,RotateByAtLeast1(b + len,len)) xor b;
     end;
 else
@@ -526,8 +535,8 @@ case len of
   1..3:
     begin
       a8 := PUInt8(s)^;
-      b8 := {%H-}PUInt8({%H-}PtrUInt(s) + (len shr 1))^;
-      c8 := {%H-}PUInt8({%H-}PtrUInt(s) + (len - 1))^;
+      b8 := PUInt8(PtrUInt(s) + (len shr 1))^;
+      c8 := PUInt8(PtrUInt(s) + (len - 1))^;
       y := UInt32(a8) + UInt32(UInt32(b8) shl 8);
       z := len + UInt32(UInt32(c8) shl 2);
       Result := ShiftMix((y * k2) xor (z * k0)) * k2;
@@ -536,13 +545,13 @@ case len of
     begin
       mul := k2 + UInt64(len) * 2;
       a := Fetch32(s);
-      Result := HashLen16(len + UInt64(a shl 3),Fetch32({%H-}PtrUInt(s) + len {%H-}- 4),mul);
+      Result := HashLen16(len + UInt64(a shl 3),Fetch32(PtrUInt(s) + len - 4),mul);
     end;
   8..High(len):
     begin
       mul := k2 + UInt64(len) * 2;
       a := Fetch64(s) + k2;
-      b := Fetch64({%H-}PtrUInt(s) + len {%H-}- 8);
+      b := Fetch64(PtrUInt(s) + len - 8);
       c := Rotate(b,37) * mul + a;
       d := (Rotate(a,25) + b) * mul;
       Result := HashLen16(c,d,mul);
@@ -568,14 +577,14 @@ begin
 mul := k2 + UInt64(len) * 2;
 {$ENDIF}
 a := Fetch64(s) * k1;
-b := Fetch64({%H-}PtrUInt(s) + 8);
+b := Fetch64(PtrUInt(s) + 8);
 {$IFDEF VER_1_0_3}
-c := Fetch64({%H-}PtrUInt(s) + len {%H-}- 8) * k2;
-d := Fetch64({%H-}PtrUInt(s) + len {%H-}- 16) * k0;
+c := Fetch64(PtrUInt(s) + len - 8) * k2;
+d := Fetch64(PtrUInt(s) + len - 16) * k0;
 Result := HashLen16(Rotate(a - b,43) + Rotate(c,30) + d,a + Rotate(b xor k3,20) - c + len);
 {$ELSE}
-c := Fetch64({%H-}PtrUInt(s) + len {%H-}- 8) * mul;
-d := Fetch64({%H-}PtrUInt(s) + len {%H-}- 16) * k2;
+c := Fetch64(PtrUInt(s) + len - 8) * mul;
+d := Fetch64(PtrUInt(s) + len - 16) * k2;
 Result := HashLen16(Rotate(a + b,43) + Rotate(c,30) + d,a + Rotate(b + k2,18) + c,mul);
 {$ENDIF}
 end;
@@ -603,8 +612,8 @@ end;
 // Return a 16-byte hash for s[0] ... s[31], a, and b.  Quick and dirty.
 Function WeakHashLen32WithSeeds(s: Pointer; a,b: UInt64): UInt128; overload;
 begin
-Result := WeakHashLen32WithSeeds(Fetch64(s),Fetch64({%H-}PtrUInt(s) + 8),
-            Fetch64({%H-}PtrUInt(s) + 16),Fetch64({%H-}PtrUInt(s) + 24),a,b);
+Result := WeakHashLen32WithSeeds(Fetch64(s),Fetch64(PtrUInt(s) + 8),
+            Fetch64(PtrUInt(s) + 16),Fetch64(PtrUInt(s) + 24),a,b);
 end;
 
 //------------------------------------------------------------------------------
@@ -615,22 +624,22 @@ Function HashLen33to64(s: Pointer; len: TMemSize): UInt64;
 var
   a,b,c,z,vf,vs,wf,ws,r:  UInt64;
 begin
-z := Fetch64({%H-}PtrUInt(s) + 24);
-a := Fetch64(s) + (len + Fetch64({%H-}PtrUInt(s) + len {%H-}- 16)) * k0;
+z := Fetch64(PtrUInt(s) + 24);
+a := Fetch64(s) + (len + Fetch64(PtrUInt(s) + len - 16)) * k0;
 b := Rotate(a + z,52);
 c := Rotate(a,37);
-a := a + Fetch64({%H-}PtrUInt(s) + 8);
+a := a + Fetch64(PtrUInt(s) + 8);
 c := c + Rotate(a,7);
-a := a + Fetch64({%H-}PtrUInt(s) + 16);
+a := a + Fetch64(PtrUInt(s) + 16);
 vf := a + z;
 vs := b + Rotate(a,31) + c;
-a := Fetch64({%H-}PtrUInt(s) + 16) + Fetch64({%H-}PtrUInt(s) + len {%H-}- 32);
-z := Fetch64({%H-}PtrUInt(s) + len {%H-}- 8);
+a := Fetch64(PtrUInt(s) + 16) + Fetch64(PtrUInt(s) + len - 32);
+z := Fetch64(PtrUInt(s) + len - 8);
 b := Rotate(a + z,52);
 c := Rotate(a,37);
-a := a + Fetch64({%H-}PtrUInt(s) + len {%H-}- 24);
+a := a + Fetch64(PtrUInt(s) + len - 24);
 c := c + Rotate(a,7);
-a := a + Fetch64({%H-}PtrUInt(s) + len {%H-}- 16);
+a := a + Fetch64(PtrUInt(s) + len - 16);
 wf := a + z;
 ws := b + Rotate(a,31) + c;
 r := ShiftMix((vf + ws) * k2 + (wf + vs) * k0);
@@ -642,13 +651,13 @@ var
 begin
 mul := k2 + UInt64(len) * 2;
 a := Fetch64(s) * k2;
-b := Fetch64({%H-}PtrUInt(s) + 8);
-c := Fetch64({%H-}PtrUInt(s) + len {%H-}- 24);
-d := Fetch64({%H-}PtrUInt(s) + len {%H-}- 32);
-e := Fetch64({%H-}PtrUInt(s) + 16) * k2;
-f := Fetch64({%H-}PtrUInt(s) + 24) * 9;
-g := Fetch64({%H-}PtrUInt(s) + len {%H-}- 8);
-h := Fetch64({%H-}PtrUInt(s) + len {%H-}- 16) * mul;
+b := Fetch64(PtrUInt(s) + 8);
+c := Fetch64(PtrUInt(s) + len - 24);
+d := Fetch64(PtrUInt(s) + len - 32);
+e := Fetch64(PtrUInt(s) + 16) * k2;
+f := Fetch64(PtrUInt(s) + 24) * 9;
+g := Fetch64(PtrUInt(s) + len - 8);
+h := Fetch64(PtrUInt(s) + len - 16) * mul;
 u := Rotate(a + g,43) + (Rotate(b,30) + c) * 9;
 v := ((a + g) xor d) + f + 1;
 w := EndianSwap((u + v) * mul) + h;
@@ -680,24 +689,24 @@ If Len <= 64 then
   end;
 // For strings over 64 bytes we hash the end first, and then as we
 // loop we keep 56 bytes of state: v, w, x, y, and z.
-x := Fetch64({%H-}PtrUInt(s) + len {%H-}- 40);
-y := Fetch64({%H-}PtrUInt(s) + len {%H-}- 16) + Fetch64({%H-}PtrUInt(s) + len {%H-}- 56);
-z := HashLen16(Fetch64({%H-}PtrUInt(s) + len {%H-}- 48) + len,Fetch64({%H-}PtrUInt(s) + len {%H-}- 24));
-v := WeakHashLen32WithSeeds({%H-}Pointer({%H-}PtrUInt(s) + len {%H-}- 64),len,z);
-w := WeakHashLen32WithSeeds({%H-}Pointer({%H-}PtrUInt(s) + len {%H-}- 32),y + k1,x);
+x := Fetch64(PtrUInt(s) + len - 40);
+y := Fetch64(PtrUInt(s) + len - 16) + Fetch64(PtrUInt(s) + len - 56);
+z := HashLen16(Fetch64(PtrUInt(s) + len - 48) + len,Fetch64(PtrUInt(s) + len - 24));
+v := WeakHashLen32WithSeeds(Pointer(PtrUInt(s) + len - 64),len,z);
+w := WeakHashLen32WithSeeds(Pointer(PtrUInt(s) + len - 32),y + k1,x);
 x := x * k1 + Fetch64(s);
 // Decrease len to the nearest multiple of 64, and operate on 64-byte chunks.
 len := (len - 1) and not TMemSize(63);
 repeat
-  x := Rotate(x + y + v.First + Fetch64({%H-}PtrUInt(s) + 8),37) * k1;
-  y := Rotate(y + v.Second + Fetch64({%H-}PtrUInt(s) + 48), 42) * k1;
+  x := Rotate(x + y + v.First + Fetch64(PtrUInt(s) + 8),37) * k1;
+  y := Rotate(y + v.Second + Fetch64(PtrUInt(s) + 48), 42) * k1;
   x := x xor w.Second;
-  y := y + (v.First + Fetch64({%H-}PtrUInt(s) + 40));
+  y := y + (v.First + Fetch64(PtrUInt(s) + 40));
   z := Rotate(z + w.First,33) * k1;
   v := WeakHashLen32WithSeeds(s,v.Second * k1,x + w.First);
-  w := WeakHashLen32WithSeeds({%H-}Pointer({%H-}PtrUInt(s) + 32),z + w.Second,y + Fetch64({%H-}PtrUInt(s) + 16));
+  w := WeakHashLen32WithSeeds(Pointer(PtrUInt(s) + 32),z + w.Second,y + Fetch64(PtrUInt(s) + 16));
   SWAP(x,z);
-  s := {%H-}Pointer({%H-}PtrUInt(s) + 64);
+  s := Pointer(PtrUInt(s) + 64);
   len := len - 64;
 until len <= 0;
 Result := HashLen16(HashLen16(v.First,w.First) + ShiftMix(y) * k1 + z,
@@ -741,17 +750,17 @@ If l <= 0 then  // len <= 16
   end
 else  // len > 16
   begin
-    c := HashLen16(Fetch64({%H-}PtrUInt(s) + len {%H-}- 8) + k1,a);
-    d := HashLen16(b + len,c + Fetch64({%H-}PtrUInt(s) + len {%H-}- 16));
+    c := HashLen16(Fetch64(PtrUInt(s) + len - 8) + k1,a);
+    d := HashLen16(b + len,c + Fetch64(PtrUInt(s) + len - 16));
     a := a + d;
     repeat
       a := a xor ShiftMix(Fetch64(s) * k1) * k1;
       a := a * k1;
       b := b xor a;
-      c := c xor (ShiftMix(Fetch64({%H-}PtrUInt(s) + 8) * k1) * k1);
+      c := c xor (ShiftMix(Fetch64(PtrUInt(s) + 8) * k1) * k1);
       c := c * k1;
       d := d xor c;
-      s := {%H-}Pointer({%H-}PtrUInt(s) + 16);
+      s := Pointer(PtrUInt(s) + 16);
       l := l - 16;
     until l <= 0;
   end;
@@ -779,29 +788,29 @@ x := UInt128Low64(seed);
 y := UInt128High64(seed);
 z := len * k1;
 v.First := Rotate(y xor k1,49) * k1 + Fetch64(s);
-v.Second := Rotate(v.First,42) * k1 + Fetch64({%H-}PtrUInt(s) + 8);
+v.Second := Rotate(v.First,42) * k1 + Fetch64(PtrUInt(s) + 8);
 w.First := Rotate(y + z,35) * k1 + x;
-w.Second := Rotate(x + Fetch64({%H-}PtrUInt(s) + 88),53) * k1;
+w.Second := Rotate(x + Fetch64(PtrUInt(s) + 88),53) * k1;
 // This is the same inner loop as CityHash64(), manually unrolled.
 repeat
-  x := Rotate(x + y + v.First + Fetch64({%H-}PtrUInt(s) + 8),37) * k1;
-  y := Rotate(y + v.Second + Fetch64({%H-}PtrUInt(s) + 48),42) * k1;
+  x := Rotate(x + y + v.First + Fetch64(PtrUInt(s) + 8),37) * k1;
+  y := Rotate(y + v.Second + Fetch64(PtrUInt(s) + 48),42) * k1;
   x := x xor w.Second;
-  y := y + (v.First + Fetch64({%H-}PtrUInt(s) + 40));
+  y := y + (v.First + Fetch64(PtrUInt(s) + 40));
   z := Rotate(z + w.First,33) * k1;
   v := WeakHashLen32WithSeeds(s,v.Second * k1,x + w.First);
-  w := WeakHashLen32WithSeeds({%H-}Pointer({%H-}PtrUInt(s) + 32),z + w.Second,y + Fetch64({%H-}PtrUInt(s) + 16));
+  w := WeakHashLen32WithSeeds(Pointer(PtrUInt(s) + 32),z + w.Second,y + Fetch64(PtrUInt(s) + 16));
   SWAP(x,z);
-  s := {%H-}Pointer({%H-}PtrUInt(s) + 64);
-  x := Rotate(x + y + v.First + Fetch64({%H-}PtrUInt(s) + 8),37) * k1;
-  y := Rotate(y + v.Second + Fetch64({%H-}PtrUInt(s) + 48),42) * k1;
+  s := Pointer(PtrUInt(s) + 64);
+  x := Rotate(x + y + v.First + Fetch64(PtrUInt(s) + 8),37) * k1;
+  y := Rotate(y + v.Second + Fetch64(PtrUInt(s) + 48),42) * k1;
   x := x xor w.Second;
-  y := y + (v.First + Fetch64({%H-}PtrUInt(s) + 40));
+  y := y + (v.First + Fetch64(PtrUInt(s) + 40));
   z := Rotate(z + w.First,33) * k1;
   v := WeakHashLen32WithSeeds(s,v.Second * k1,x + w.First);
-  w := WeakHashLen32WithSeeds({%H-}Pointer({%H-}PtrUInt(s) + 32),z + w.Second,y + Fetch64({%H-}PtrUInt(s) + 16));
+  w := WeakHashLen32WithSeeds(Pointer(PtrUInt(s) + 32),z + w.Second,y + Fetch64(PtrUInt(s) + 16));
   SWAP(x,z);
-  s := {%H-}Pointer({%H-}PtrUInt(s) + 64);
+  s := Pointer(PtrUInt(s) + 64);
   len := len - 128;
 until len < 128;
 x := x + (Rotate(v.First + z,49) * k0);
@@ -819,11 +828,11 @@ while tail_done < len do
   begin
     tail_done := tail_done + 32;
     y := Rotate(x + y,42) * k0 + v.Second;
-    w.First := w.First + Fetch64({%H-}PtrUInt(s) + len {%H-}- tail_done + 16);
+    w.First := w.First + Fetch64(PtrUInt(s) + len - tail_done + 16);
     x := x * k0 + w.First;
-    z := z + (w.Second + Fetch64({%H-}PtrUInt(s) + len {%H-}- tail_done));
+    z := z + (w.Second + Fetch64(PtrUInt(s) + len - tail_done));
     w.Second := w.Second + v.First;
-    v := WeakHashLen32WithSeeds({%H-}Pointer({%H-}PtrUInt(s) + len {%H-}- tail_done),v.First + z,v.Second);
+    v := WeakHashLen32WithSeeds(Pointer(PtrUInt(s) + len - tail_done),v.First + z,v.Second);
   {$IFNDEF VER_1_0_3}
     v.First := v.First * k0;
   {$ENDIF}  
@@ -843,14 +852,14 @@ Function CityHash128(s: Pointer; len: TMemSize): UInt128;
 begin
 {$IFDEF VER_1_0_3}
 If len >= 16 then
-  Result := CityHash128WithSeed({%H-}Pointer({%H-}PtrUInt(s) + 16),len - 16,UInt128Make(Fetch64(s) xor k3,Fetch64({%H-}PtrUInt(s) + 8)))
+  Result := CityHash128WithSeed(Pointer(PtrUInt(s) + 16),len - 16,UInt128Make(Fetch64(s) xor k3,Fetch64(PtrUInt(s) + 8)))
 else If len >= 8 then
-  Result := CityHash128WithSeed(nil,0,UInt128Make(Fetch64(s) xor (len * k0),Fetch64({%H-}PtrUInt(s) + len {%H-}- 8) xor k1))
+  Result := CityHash128WithSeed(nil,0,UInt128Make(Fetch64(s) xor (len * k0),Fetch64(PtrUInt(s) + len - 8) xor k1))
 else
   Result := CityHash128WithSeed(s,len,UInt128Make(k0,k1));
 {$ELSE}
 If len >= 16 then
-  Result := CityHash128WithSeed({%H-}Pointer({%H-}PtrUInt(s) + 16),len - 16,UInt128Make(Fetch64(s),Fetch64({%H-}PtrUInt(s) + 8) + k0))
+  Result := CityHash128WithSeed(Pointer(PtrUInt(s) + 16),len - 16,UInt128Make(Fetch64(s),Fetch64(PtrUInt(s) + 8) + k0))
 else
   Result := CityHash128WithSeed(s,len,UInt128Make(k0,k1));
 {$ENDIF}
@@ -953,27 +962,27 @@ var
   begin
     old_a := a;
     a := Rotate(b,41 xor z) * multiplier + Fetch64(s);
-    b := Rotate(c,27 xor z) * multiplier + Fetch64({%H-}PtrUInt(s) + 8);
-    c := Rotate(d,41 xor z) * multiplier + Fetch64({%H-}PtrUInt(s) + 16);
-    d := Rotate(e,33 xor z) * multiplier + Fetch64({%H-}PtrUInt(s) + 24);
-    e := Rotate(t,25 xor z) * multiplier + Fetch64({%H-}PtrUInt(s) + 32);
+    b := Rotate(c,27 xor z) * multiplier + Fetch64(PtrUInt(s) + 8);
+    c := Rotate(d,41 xor z) * multiplier + Fetch64(PtrUInt(s) + 16);
+    d := Rotate(e,33 xor z) * multiplier + Fetch64(PtrUInt(s) + 24);
+    e := Rotate(t,25 xor z) * multiplier + Fetch64(PtrUInt(s) + 32);
     t := old_a;
     f := _mm_crc32_u64(f,a);
     g := _mm_crc32_u64(g,b);
     h := _mm_crc32_u64(h,c);
     i := _mm_crc32_u64(i,d);
     j := _mm_crc32_u64(j,e);
-    s := {%H-}Pointer({%H-}PtrUInt(s) + 40);
+    s := Pointer(PtrUInt(s) + 40);
   end;
 
 begin
-a := Fetch64({%H-}PtrUInt(s) + 56) + k0;
-b := Fetch64({%H-}PtrUInt(s) + 96) + k0;
+a := Fetch64(PtrUInt(s) + 56) + k0;
+b := Fetch64(PtrUInt(s) + 96) + k0;
 result[0] := HashLen16(b,len);
 c := result[0];
-result[1] := Fetch64({%H-}PtrUInt(s) + 120) * k0 + len;
+result[1] := Fetch64(PtrUInt(s) + 120) * k0 + len;
 d := result[1];
-e := Fetch64({%H-}PtrUInt(s) + 184) + seed;
+e := Fetch64(PtrUInt(s) + 184) + seed;
 f := seed;
 g := 0;
 h := 0;
@@ -982,7 +991,7 @@ j := 0;
 t := c + d;
 // 240 bytes of input per iter.
 iters := len div 240;
-len := len {%H-}- (iters * 240);
+len := len - (iters * 240);
 repeat
   CHUNK(1,1); CHUNK(k0,0);
   CHUNK(1,1); CHUNK(k0,0);
@@ -996,7 +1005,7 @@ while len >= 40 do
   end;
 If len > 0 then
   begin
-    s := {%H-}Pointer({%H-}PtrUInt(s) + len {%H-}- 40);
+    s := Pointer(PtrUInt(s) + len - 40);
     CHUNK(k0,0);
   end;
 j := j + UInt64(i shl 32);
@@ -1027,10 +1036,10 @@ var
   begin
     PERMUTE3(x,z,y);
     b := b + Fetch64(s);
-    c := c + Fetch64({%H-}PtrUInt(s) + 8);
-    d := d + Fetch64({%H-}PtrUInt(s) + 16);
-    e := e + Fetch64({%H-}PtrUInt(s) + 24);
-    f := f + Fetch64({%H-}PtrUInt(s) + 32);
+    c := c + Fetch64(PtrUInt(s) + 8);
+    d := d + Fetch64(PtrUInt(s) + 16);
+    e := e + Fetch64(PtrUInt(s) + 24);
+    f := f + Fetch64(PtrUInt(s) + 32);
     a := a + b;
     h := h + f;
     b := b + c;
@@ -1043,17 +1052,17 @@ var
     x := _mm_crc32_u64(x,f + a);
     e := Rotate(e,r);
     c := c + e;
-    s := {%H-}Pointer({%H-}PtrUInt(s) + 40);
+    s := Pointer(PtrUInt(s) + 40);
   end;
 
 begin
-a := Fetch64({%H-}PtrUInt(s) + 56) + k0;
-b := Fetch64({%H-}PtrUInt(s) + 96) + k0;
+a := Fetch64(PtrUInt(s) + 56) + k0;
+b := Fetch64(PtrUInt(s) + 96) + k0;
 result[0] := HashLen16(b,len);
 c := result[0];
-result[1] := Fetch64({%H-}PtrUInt(s) + 120) * k0 + len;
+result[1] := Fetch64(PtrUInt(s) + 120) * k0 + len;
 d := result[1];
-e := Fetch64({%H-}PtrUInt(s) + 184) + seed;
+e := Fetch64(PtrUInt(s) + 184) + seed;
 f := 0;
 g := 0;
 h := c + d;
@@ -1062,7 +1071,7 @@ y := 0;
 z := 0;
 // 240 bytes of input per iter.
 iters := len div 240;
-len := len {%H-}- (iters * 240);
+len := len - (iters * 240);
 repeat
   CHUNK(0);  PERMUTE3(a,h,c);
   CHUNK(33); PERMUTE3(a,h,f);
@@ -1084,7 +1093,7 @@ while len >= 40 do
   end;
 If len > 0 then
   begin
-    s := {%H-}Pointer({%H-}PtrUInt(s) + len {%H-}- 40);
+    s := Pointer(PtrUInt(s) + len - 40);
     CHUNK(33);
     e := e xor Rotate(a,43);
     h := h + Rotate(b,42);
@@ -1121,7 +1130,7 @@ procedure CityHashCrc256Short(s: Pointer; len: TMemSize; out result: UInt256);
 var
   buf:  array[0..239] of Byte;
 begin
-Move(s^,{%H-}buf,len);
+Move(s^,buf,len);
 FillChar(buf[len],240 - len,0);
 CityHashCrc256Long(@buf,240,not UInt32(len),result)
 end;
