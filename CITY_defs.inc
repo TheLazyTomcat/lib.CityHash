@@ -46,6 +46,7 @@
   {$MODE Delphi}
   {$ASMMODE Intel}
   {$DEFINE FPC_DisableWarns}
+  {$MACRO ON}
 {$ENDIF}
 
 {$IF not Defined(FPC) and not Defined(x64)}
