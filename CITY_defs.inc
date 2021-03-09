@@ -1,23 +1,3 @@
-(*
-  CRC_Functions
-
-  When active, the CRC functions are available for use, otherwise they are
-  removed from the library.
-
-  Default: active
-*)
-{$DEFINE CRC_Functions}
-
-(*
-  VER_1_0_3
-
-  When active, the library uses version 1.0.3 of the CityHash implementation.
-  Otherwise the version 1.1.1 is used.
-
-  Default: inactive
-*)
-{.$DEFINE VER_1_0_3}
-
 {
   AllowCRCExtension
 
@@ -44,14 +24,24 @@
 
 {$IFDEF FPC}
   {$MODE Delphi}
-  {$ASMMODE Intel}
+  {$INLINE ON}
+  {$DEFINE CanInline}
+  {$IFNDEF PurePascal}
+    {$ASMMODE Intel}
+  {$ENDIF}
   {$DEFINE FPC_DisableWarns}
   {$MACRO ON}
+{$ELSE}
+  {$IF CompilerVersion >= 17 then}  // Delphi 2005+
+    {$DEFINE CanInline}
+  {$ELSE}
+    {$UNDEF CanInline}
+  {$IFEND}
+  {$IFNDEF x64}
+    {$DEFINE ASM_MachineCode}
+  {$ENDIF}
 {$ENDIF}
-
-{$IF not Defined(FPC) and not Defined(x64)}
-  {$DEFINE ASM_MachineCode}
-{$IFEND}
+{$H+}
 
 {$Q-} // turn off overflow checks
 {$R-} // turn off range checks

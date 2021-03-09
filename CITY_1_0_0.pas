@@ -8,11 +8,17 @@ uses
   AuxTypes,
   CITY_Common;
 
+{===============================================================================
+    Utility functions - declaration
+===============================================================================}
+
 // Hash 128 input bits down to 64 bits of output.
 // This is intended to be a reasonably good hash function.
 Function Hash128to64(const x: UInt128): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
 
-//------------------------------------------------------------------------------
+{===============================================================================
+    Main hash functions - declaration
+===============================================================================}
 
 // Hash function for a byte array.
 Function CityHash64(s: Pointer; len: TMemSize): UInt64;
@@ -34,69 +40,29 @@ Function CityHash128(s: Pointer; len: TMemSize): UInt128;
 
 implementation
 
-uses
-  BitOps;
+{===============================================================================
+    Utility functions - implementation
+===============================================================================}
 
 Function Hash128to64(const x: UInt128): UInt64;
 begin
 Result := CITY_Common.Hash128to64(x);
 end;
 
-//==============================================================================
+{===============================================================================
+    Main hash functions - implementation
+===============================================================================}
+{-------------------------------------------------------------------------------
+    Main hash functions - internals
+-------------------------------------------------------------------------------}
 
-// Some primes between 2^63 and 2^64 for various uses.
-const
-  k0 = UInt64($c3a5c85c97cb3127);
-  k1 = UInt64($b492b66fbe98f273);
-  k2 = UInt64($9ae16a3b2f90404f);
-  k3 = UInt64($c949d7c7509e6557);
-
-//------------------------------------------------------------------------------
-
-// Bitwise right rotate.  Normally this will compile to a single
-// instruction, especially if the shift is a manifest constant.
-Function Rotate(val: UInt64; shift: Integer): UInt64;
-begin
-// Avoid shifting by 64: doing so yields an undefined result.
-If shift = 0 then
-  Result := val
-else
-  Result := ROR(val,Byte(Shift));
-end;
-
-//------------------------------------------------------------------------------
-
-// Equivalent to Rotate(), but requires the second arg to be non-zero.
-// On x86-64, and probably others, it's possible for this to compile
-// to a single instruction if both args are already in registers.
-Function RotateByAtLeast1(val: UInt64; shift: Integer): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
-begin
-Result := ROR(val,Byte(Shift));
-end;
-
-//------------------------------------------------------------------------------
-
-Function ShiftMix(val: UInt64): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
-begin
-Result := val xor (val shr 47);
-end;
-
-//------------------------------------------------------------------------------
-
-Function HashLen16(u,v: UInt64): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
-begin
-Result := Hash128to64(UInt128Make(u,v));
-end;
-
-//------------------------------------------------------------------------------
-
-Function HashLen0to16(const s: Pointer; len: TMemSize): UInt64;
+Function HashLen0to16(s: Pointer; len: TMemSize): UInt64;
 var
   a,b,c:  UInt64;
   y,z:    UInt32;
 begin
 case len of
-  0..3:
+  1..3:
     begin
       a := PUInt8(s)^;
       b := PUInt8(PTR_ADVANCE(s,len shr 1))^;
@@ -125,7 +91,7 @@ end;
 
 // This probably works well for 16-byte strings as well, but it may be overkill
 // in that case.
-Function HashLen17to32(const s: Pointer; len: TMemSize): UInt64;
+Function HashLen17to32(s: Pointer; len: TMemSize): UInt64;
 var
   a,b,c,d:  UInt64;
 begin
@@ -157,7 +123,7 @@ end;
 //------------------------------------------------------------------------------
 
 // Return a 16-byte hash for s[0] ... s[31], a, and b.  Quick and dirty.
-Function WeakHashLen32WithSeeds(const s: Pointer; a,b: UInt64): UInt128; overload;
+Function WeakHashLen32WithSeeds(s: Pointer; a,b: UInt64): UInt128; overload;
 begin
 Result := WeakHashLen32WithSeeds(UNALIGNED_LOAD64(s),
                                  UNALIGNED_LOAD64(s,8),
@@ -168,7 +134,7 @@ end;
 //------------------------------------------------------------------------------
 
 // Return an 8-byte hash for 33 to 64 bytes
-Function HashLen33to64(const s: Pointer; len: TMemSize): UInt64;
+Function HashLen33to64(s: Pointer; len: TMemSize): UInt64;
 var
   a,b,c,z,vf,vs,wf,ws,r:  UInt64;
 begin
@@ -194,7 +160,50 @@ r := ShiftMix((vf + ws) * k2 + (wf + vs) * k0);
 Result := ShiftMix(r * k0 + vs) * k2;
 end;
 
-//==============================================================================
+//------------------------------------------------------------------------------
+
+// A subroutine for CityHash128().  Returns a decent 128-bit hash for strings
+// of any length representable in ssize_t.  Based on City and Murmur.
+Function CityMurmur(s: Pointer; len: TMemSize; seed: UInt128): UInt128;
+var
+  a,b,c,d:  UInt64;
+  l:        PtrInt;
+begin
+a := UInt128Low64(seed);
+b := UInt128High64(seed);
+l := len - 16;
+If l <= 0 then  // len <= 16
+  begin
+    c := b * k1 + HashLen0to16(s,len);
+    If len >= 8 then
+      d := Rotate(a + UNALIGNED_LOAD64(s),32)
+    else
+      d := Rotate(a + c,32);
+  end
+else
+  begin
+    c := HashLen16(UNALIGNED_LOAD64(s,len - 8) + k1,a);
+    d := HashLen16(b + len,c + UNALIGNED_LOAD64(s,len - 16));
+    a := a + d;
+    repeat
+      a := a xor (ShiftMix(UNALIGNED_LOAD64(s) * k1) * k1);
+      a := a * k1;
+      b := b xor a;
+      c := c xor (ShiftMix(UNALIGNED_LOAD64(s,8) * k1) * k1);
+      c := c * k1;
+      d := d xor c;
+      PTR_ADVANCEVAR(s,16);
+      l := l - 16;
+    until l <= 0;
+  end;
+a := HashLen16(a,c);
+b := HashLen16(d,b);
+Result := UInt128Make(a xor b,HashLen16(b,a));
+end;
+
+{-------------------------------------------------------------------------------
+    Main hash functions - public functions
+-------------------------------------------------------------------------------}
 
 Function CityHash64(s: Pointer; len: TMemSize): UInt64;
 var
@@ -252,47 +261,6 @@ end;
 Function CityHash64WithSeeds(s: Pointer; len: TMemSize; seed0,seed1: UInt64): UInt64;
 begin
 Result := HashLen16(CityHash64(s,len) - seed0,seed1);
-end;
-
-//------------------------------------------------------------------------------
-
-// A subroutine for CityHash128().  Returns a decent 128-bit hash for strings
-// of any length representable in ssize_t.  Based on City and Murmur.
-Function CityMurmur(s: Pointer; len: TMemSize; seed: UInt128): UInt128;
-var
-  a,b,c,d:  UInt64;
-  l:        PtrInt;
-begin
-a := UInt128Low64(seed);
-b := UInt128High64(seed);
-l := len - 15;
-If l <= 0 then  // len <= 16
-  begin
-    c := b * k1 + HashLen0to16(s,len);
-    If len >= 8 then
-      d := Rotate(a + UNALIGNED_LOAD64(s),32)
-    else
-      d := Rotate(a + c,32);
-  end
-else
-  begin
-    c := HashLen16(UNALIGNED_LOAD64(s,len - 8) + k1,a);
-    d := HashLen16(b + len,c + UNALIGNED_LOAD64(s,len - 16));
-    a := a + d;
-    repeat
-      a := a xor (ShiftMix(UNALIGNED_LOAD64(s) * k1) * k1);
-      a := a * k1;
-      b := b xor a;
-      c := c xor (ShiftMix(UNALIGNED_LOAD64(s,8) * k1) * k1);
-      c := c * k1;
-      d := d xor c;
-      PTR_ADVANCEVAR(s,16);
-      l := l - 16;
-    until l <= 0;
-  end;
-a := HashLen16(a,c);
-b := HashLen16(d,b);
-Result := UInt128Make(a xor b,HashLen16(b,a));
 end;
 
 //------------------------------------------------------------------------------
