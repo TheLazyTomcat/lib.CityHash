@@ -48,11 +48,31 @@ Function Fetch64(Ptr: Pointer; Offset: PtrUInt): UInt64; overload;{$IFDEF CanInl
 
 //------------------------------------------------------------------------------
 
+Function EndianSwap(x: UInt32): UInt32; overload;{$IFDEF CanInline} inline;{$ENDIF}
+Function EndianSwap(x: UInt64): UInt64; overload;{$IFDEF CanInline} inline;{$ENDIF}
+
 procedure SWAP(var a,b: UInt64);
 
 Function PTR_ADVANCE(const Ptr: Pointer; Offset: PtrUInt): Pointer;{$IFDEF CanInline} inline;{$ENDIF}
 
 procedure PTR_ADVANCEVAR(var Ptr: Pointer; Offset: PtrUInt);{$IFDEF CanInline} inline;{$ENDIF}
+
+//------------------------------------------------------------------------------
+
+// Magic numbers for 32-bit hashing.  Copied from Murmur3.
+const
+  c1 = UInt32($cc9e2d51);
+  c2 = UInt32($1b873593);
+
+// A 32-bit to 32-bit integer hash copied from Murmur3.
+Function fmix(h: UInt32): UInt32;
+
+Function Rotate32(val: UInt32; shift: Integer): UInt32;
+
+procedure PERMUTE3(var a,b,c: UInt32); overload;
+procedure PERMUTE3(var a,b,c: UInt64); overload;
+
+Function Mur(a,h: UInt32): UInt32;
 
 //------------------------------------------------------------------------------
 
@@ -80,8 +100,8 @@ Function ShiftMix(val: UInt64): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
 
 //------------------------------------------------------------------------------
 
-Function HashLen16(u,v: UInt64): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
-
+Function HashLen16(u,v: UInt64): UInt64; overload;{$IFDEF CanInline} inline;{$ENDIF}
+Function HashLen16(u,v,mul: UInt64): UInt64; overload;
 
 Function _mm_crc32_u64(crc,v: UInt64): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
 
@@ -206,6 +226,20 @@ end;
 
 //==============================================================================
 
+Function EndianSwap(x: UInt32): UInt32;
+begin
+Result := BitOps.EndianSwap(x);
+end;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Function EndianSwap(x: UInt64): UInt64;
+begin
+Result := BitOps.EndianSwap(x);
+end;
+
+//------------------------------------------------------------------------------
+
 procedure SWAP(var a,b: UInt64);
 var
   Temp: UInt64;
@@ -259,6 +293,21 @@ end;
 Function HashLen16(u,v: UInt64): UInt64;
 begin
 Result := Hash128to64(UInt128Make(u,v));
+end;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Function HashLen16(u,v,mul: UInt64): UInt64; overload;
+var
+  a,b:  UInt64;
+begin
+// Murmur-inspired hashing.
+a := (u xor v) * mul;
+a := a xor (a shr 47);
+b := (v xor a) * mul;
+b := b xor (b shr 47);
+b := b * mul;
+Result := b;
 end;
 
 //==============================================================================
@@ -344,6 +393,59 @@ var
 Function _mm_crc32_u64(crc,v: UInt64): UInt64;
 begin
 Result := _mm_crc32_u64_var(crc,v);
+end;
+
+Function fmix(h: UInt32): UInt32;
+begin
+h := h xor (h shr 16);
+h := h * $85ebca6b;
+h := h xor (h shr 13);
+h := h * $c2b2ae35;
+h := h xor (h shr 16);
+Result := h;
+end;
+
+
+Function Rotate32(val: UInt32; shift: Integer): UInt32;
+begin
+// Avoid shifting by 32: doing so yields an undefined result.
+If shift = 0 then
+  Result := val
+else
+  Result := ROR(Val,Byte(Shift));
+end;
+
+procedure PERMUTE3(var a,b,c: UInt32); overload;
+var
+  Temp: UInt32;
+begin
+Temp := c;
+c := b;
+b := a;
+a := Temp;
+end;
+
+//   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---
+
+procedure PERMUTE3(var a,b,c: UInt64); overload;
+var
+  Temp: UInt64;
+begin
+Temp := c;
+c := b;
+b := a;
+a := Temp;
+end;
+
+Function Mur(a,h: UInt32): UInt32;
+begin
+// Helper from Murmur3 for combining two 32-bit values.
+a := a * c1;
+a := Rotate32(a,17);
+a := a * c2;
+h := h xor a;
+h := Rotate32(h,19);
+Result := h * 5 + $e6546b64;
 end;
 
 initialization
