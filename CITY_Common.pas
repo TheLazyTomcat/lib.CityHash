@@ -271,6 +271,7 @@ uses
 {$IFDEF FPC_DisableWarns}
   {$DEFINE FPCDWM}
   {$DEFINE W4055:={$WARN 4055 OFF}} // Conversion between ordinals and pointers is not portable
+  {$DEFINE W5024:={$WARN 5024 OFF}} // Parameter "$1" not used
 {$ENDIF}
 
 {===============================================================================
@@ -666,6 +667,7 @@ end;
 
 //------------------------------------------------------------------------------
 
+{$IFDEF FPCDWM}{$PUSH}W5024{$ENDIF}
 Function UIM_CheckASMSupport(Func: TUIM_CityHash_Function): Boolean;
 begin
 Result := False;
@@ -682,6 +684,7 @@ finally
 end;
 {$ENDIF}
 end;
+{$IFDEF FPCDWM}{$POP}{$ENDIF}
 
 {-------------------------------------------------------------------------------
     Unit implementation management - public functions
