@@ -1,13 +1,14 @@
 {
   AllowCRCExtension
 
-  When defined, allows use of CRC32 instruction (part of SSE 4.2) in ASM.
+  When defined, allows use of CRC32 instruction (part of SSE 4.2 extension) in
+  assembly.
   Availability of the instruction is tested at unit initialization, and the
   instruction is used only when properly supported. When it is not supported,
   pascal implementation is called instead.
   Has no meaning when PurePascal symbol is defined.
 
-  Default:  active
+  defined by default
 }
 {$DEFINE AllowCRCExtension}
 
