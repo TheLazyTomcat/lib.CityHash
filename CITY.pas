@@ -7,29 +7,61 @@
 -------------------------------------------------------------------------------}
 {===============================================================================
 
-  CITY hash calculation
+  CITY hash calculation - main unit
 
-  ©František Milt 2017-07-19
+    This library is only a naive reimplementation of reference code that can be
+    found in this repository:
 
-  Version 1.0.1
+      https://github.com/google/cityhash
 
-  This is only naive reimplementation of reference code that can be found in
-  this repository:
+    Because individual historical versions can produce different hashes for the
+    same message, all versions were implemented, each in its own unit (for
+    example version 1.0.3 of the hash is implemented in unit CITY_1_0_3.pas).
+    This allows you to choose which version to use, if you happen to need a
+    specific older implementation.
 
-    https://github.com/google/cityhash
+    Currently implemented versions are:
 
-  Version 1.1.1 of the hash is implemented, but you can switch to version 1.0.3
-  by activating VER_1_0_3 define in the CITY_defs.inc file.
+        1.0.0 ... in CITY_1_0_0.pas
+        1.0.1 ... in CITY_1_0_1.pas, CITY_1_0_1_Test.pas
+        1.0.2 ... in CITY_1_0_2.pas, CITY_1_0_2_Test.pas
+        1.0.3 ... in CITY_1_0_3.pas, CITY_1_0_3_Test.pas
+        1.1.0 ... in CITY_1_1_0.pas, CITY_1_1_0_Test.pas
+        1.1.1 ... in CITY_1_1_1.pas, CITY_1_1_1_Test.pas
+
+    Functions provided in this unit are only redirecting to latest version,
+    which is currently 1.1.1.
+
+    WARNING - version of this library does not correlate with version of
+              implemented and used version of the CITY hash!
+
+  Version 2.0 (2021-03-10) [WIP]
+
+  Last change 2021-03-10
+
+  ©2016-2021 František Milt
+
+  Contacts:
+    František Milt: frantisek.milt@gmail.com
+
+  Support:
+    If you find this code useful, please consider supporting its author(s) by
+    making a small donation using the following link(s):
+
+      https://www.paypal.me/FMilt
+
+  Changelog:
+    For detailed changelog and history please refer to this git repository:
+
+      github.com/TheLazyTomcat/Lib.CityHash
 
   Dependencies:
-    AuxTypes    - github.com/ncs-sniper/Lib.AuxTypes
-    BitOps      - github.com/ncs-sniper/Lib.BitOps
-  * SimpleCPUID - github.com/ncs-sniper/Lib.SimpleCPUID
+    AuxTypes    - github.com/TheLazyTomcat/Lib.AuxTypes
+    BitOps      - github.com/TheLazyTomcat/Lib.BitOps
+  * SimpleCPUID - github.com/TheLazyTomcat/Lib.SimpleCPUID
 
-  SimpleCPUID is required only when both AllowCRCExtension and CRC_Functions
-  symbols are defined and PurePascal symbol is not defined.
-  Also, it might be needed by BitOps library, depending whether ASM extensions
-  are allowed there.
+  SimpleCPUID is required only when PurePascal symbol is not defined.
+  Also, it might be needed by BitOps library, see there for details
 
 ===============================================================================}
 unit CITY;
@@ -41,7 +73,7 @@ interface
 uses
   AuxTypes,
   CITY_Common,
-  CITY_1_1_1; // must be hero for inlining in delphi
+  CITY_1_1_1; // must be here for inlining in delphi
 
 {===============================================================================
 --------------------------------------------------------------------------------
