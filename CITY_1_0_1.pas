@@ -403,7 +403,7 @@ j := 0;
 t := c + d;
 // 240 bytes of input per iter.
 iters := len div 240;
-len := len - (iters * 240);
+len := TMemSize(UInt64(len) - (UInt64(iters) * 240));
 repeat
   CHUNK(1,1); CHUNK(k0,0);
   CHUNK(1,1); CHUNK(k0,0);
@@ -449,7 +449,7 @@ procedure CityHashCrc256Short(s: Pointer; len: TMemSize; out result: UInt256);
 var
   buf:  array[0..239] of Byte;
 begin
-Move(s^,buf,len);
+Move(s^,Addr(buf)^,len);
 FillChar(buf[len],240 - len,0);
 CityHashCrc256Long(@buf,240,len,result)
 end;

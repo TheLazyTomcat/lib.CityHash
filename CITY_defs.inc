@@ -1,5 +1,5 @@
 {
-  AllowCRCExtension
+  CITY_AllowCRCExt
 
   When defined, allows use of CRC32 instruction (part of SSE 4.2 extension) in
   assembly.
@@ -8,9 +8,9 @@
   pascal implementation is called instead.
   Has no meaning when PurePascal symbol is defined.
 
-  defined by default
+  Defined by default.
 }
-{$DEFINE AllowCRCExtension}
+{$DEFINE CITY_AllowCRCExt}
 
 //------------------------------------------------------------------------------
 

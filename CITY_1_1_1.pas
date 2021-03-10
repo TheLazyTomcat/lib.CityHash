@@ -85,7 +85,7 @@ If Len > 0 then
   For i := 0 to Pred(Len) do
     begin
       v := PInt8(PTR_ADVANCE(s,i))^;
-      b := UInt32(Int64(b * c1) + v);
+      b := UInt32((Int64(b) * c1) + v);
       c := c xor b;
     end;
 Result := fmix(Mur(b,Mur(len,c)));    
@@ -110,7 +110,7 @@ Function Hash32Len13to24(s: Pointer; len: TMemSize): UInt32;
 var
   a,b,c,d,e,f,h:  UInt32;
 begin
-a := Fetch32(s,-4 + (len shr 1));
+a := Fetch32(s,PtrUInt(Int64(-4) + (len shr 1)));
 b := Fetch32(s,4);
 c := Fetch32(s,len - 8);
 d := Fetch32(s,len shr 1);
@@ -140,13 +140,13 @@ case len of
     end;
   4..7:
     begin
-      mul := k2 + len * 2;
+      mul := k2 + UInt64(len) * 2;
       a := Fetch32(s);
       Result := HashLen16(len + (a shl 3),Fetch32(s,len - 4),mul);
     end;
   8..High(len):
     begin
-      mul := k2 + len * 2;
+      mul := k2 + UInt64(len) * 2;
       a := Fetch64(s) + k2;
       b := Fetch64(s,len - 8);
       c := Rotate(b,37) * mul + a;
@@ -167,7 +167,7 @@ var
   a,b,c,d:  UInt64;
   mul:      UInt64;
 begin
-mul := k2 + len * 2;
+mul := k2 + UInt64(len) * 2;
 a := Fetch64(s) * k1;
 b := Fetch64(s,8);
 c := Fetch64(s,len - 8) * mul;
@@ -208,7 +208,7 @@ Function HashLen33to64(s: Pointer; len: TMemSize): UInt64;
 var
   mul,a,b,c,d,e,f,g,h,u,v,w,x,y,z:  UInt64;
 begin
-mul := k2 + len * 2;
+mul := k2 + UInt64(len) * 2;
 a := Fetch64(s) * k2;
 b := Fetch64(s,8);
 c := Fetch64(s,len - 24);
@@ -544,7 +544,7 @@ y := 0;
 z := 0;
 // 240 bytes of input per iter.
 iters := len div 240;
-len := len - (iters * 240);
+len := len + TMemSize(-(Int64(iters) * 240));
 repeat
   CHUNK(0);  PERMUTE3(a,h,c);
   CHUNK(33); PERMUTE3(a,h,f);
@@ -602,7 +602,7 @@ procedure CityHashCrc256Short(s: Pointer; len: TMemSize; out result: UInt256);
 var
   buf:  array[0..239] of Byte;
 begin
-Move(s^,buf,len);
+Move(s^,Addr(buf)^,len);
 FillChar(buf[len],240 - len,0);
 CityHashCrc256Long(@buf,240,not UInt32(len),result)
 end;

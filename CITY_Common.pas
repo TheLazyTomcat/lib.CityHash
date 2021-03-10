@@ -7,6 +7,9 @@ interface
 uses
   AuxTypes;
 
+{===============================================================================
+    common types - declaration
+===============================================================================}
 type
   UInt128 = packed record
     case Integer of
@@ -25,11 +28,28 @@ Function UInt128High64(x: UInt128): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
 
 Function Hash128to64(const x: UInt128): UInt64;
 
+//------------------------------------------------------------------------------
+
 type
   UInt256 = array[0..3] of UInt64;
   PUInt256 = ^UInt256;
+
+{===============================================================================
+    data manipulation functions - declaration
+===============================================================================}
+
+Function EndianSwap(x: UInt32): UInt32; overload;{$IF Defined(CanInline) and Defined(FPC)} inline;{$IFEND}
+Function EndianSwap(x: UInt64): UInt64; overload;{$IF Defined(CanInline) and Defined(FPC)} inline;{$IFEND}
+
+procedure SWAP(var a,b: UInt64);
+
+Function PTR_ADVANCE(const Ptr: Pointer; Offset: PtrUInt): Pointer;{$IFDEF CanInline} inline;{$ENDIF}
+
+procedure PTR_ADVANCEVAR(var Ptr: Pointer; Offset: PtrUInt);{$IFDEF CanInline} inline;{$ENDIF}
   
-//------------------------------------------------------------------------------
+{===============================================================================
+    data loading functions - declaration
+===============================================================================}
 
 Function UNALIGNED_LOAD32(Ptr: Pointer): UInt32; overload;{$IFDEF CanInline} inline;{$ENDIF}
 Function UNALIGNED_LOAD32(Ptr: Pointer; Offset: PtrUInt): UInt32; overload;{$IFDEF CanInline} inline;{$ENDIF}
@@ -46,23 +66,16 @@ Function Fetch32(Ptr: Pointer; Offset: PtrUInt): UInt32; overload;{$IFDEF CanInl
 Function Fetch64(Ptr: Pointer): UInt64; overload;{$IFDEF CanInline} inline;{$ENDIF}
 Function Fetch64(Ptr: Pointer; Offset: PtrUInt): UInt64; overload;{$IFDEF CanInline} inline;{$ENDIF}
 
-//------------------------------------------------------------------------------
-
-Function EndianSwap(x: UInt32): UInt32; overload;{$IFDEF CanInline} inline;{$ENDIF}
-Function EndianSwap(x: UInt64): UInt64; overload;{$IFDEF CanInline} inline;{$ENDIF}
-
-procedure SWAP(var a,b: UInt64);
-
-Function PTR_ADVANCE(const Ptr: Pointer; Offset: PtrUInt): Pointer;{$IFDEF CanInline} inline;{$ENDIF}
-
-procedure PTR_ADVANCEVAR(var Ptr: Pointer; Offset: PtrUInt);{$IFDEF CanInline} inline;{$ENDIF}
-
-//------------------------------------------------------------------------------
+{===============================================================================
+    32bit hash functions - declaration
+===============================================================================}
 
 // Magic numbers for 32-bit hashing.  Copied from Murmur3.
 const
   c1 = UInt32($cc9e2d51);
   c2 = UInt32($1b873593);
+
+//------------------------------------------------------------------------------
 
 // A 32-bit to 32-bit integer hash copied from Murmur3.
 Function fmix(h: UInt32): UInt32;
@@ -74,41 +87,84 @@ procedure PERMUTE3(var a,b,c: UInt64); overload;
 
 Function Mur(a,h: UInt32): UInt32;
 
-//------------------------------------------------------------------------------
+{===============================================================================
+    64bit+ hash functions - declaration
+===============================================================================}
 
 // Some primes between 2^63 and 2^64 for various uses.
+{$IF Defined(FPC) and (FPC_FULLVERSION < 30000)}
+// following nonsense is here to prevent internal error 200706094 in older FPC
+const
+  _k0 = UInt64($c3a5c85c97cb3127);
+  _k1 = UInt64($b492b66fbe98f273);
+  _k2 = UInt64($9ae16a3b2f90404f);
+  _k3 = UInt64($c949d7c7509e6557);
+
+  k0: UInt64 = _k0;
+  k1: UInt64 = _k1;
+  k2: UInt64 = _k2;
+  k3: UInt64 = _k3;
+{$ELSE}
 const
   k0 = UInt64($c3a5c85c97cb3127);
   k1 = UInt64($b492b66fbe98f273);
   k2 = UInt64($9ae16a3b2f90404f);
   k3 = UInt64($c949d7c7509e6557);
+{$IFEND}
+
+//------------------------------------------------------------------------------
 
 // Bitwise right rotate.  Normally this will compile to a single
 // instruction, especially if the shift is a manifest constant.
 Function Rotate(val: UInt64; shift: Integer): UInt64;
 
-//------------------------------------------------------------------------------
-
 // Equivalent to Rotate(), but requires the second arg to be non-zero.
 // On x86-64, and probably others, it's possible for this to compile
 // to a single instruction if both args are already in registers.
-Function RotateByAtLeast1(val: UInt64; shift: Integer): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
-
-//------------------------------------------------------------------------------
+Function RotateByAtLeast1(val: UInt64; shift: Integer): UInt64;{$IF Defined(CanInline) and Defined(FPC)} inline;{$IFEND}
 
 Function ShiftMix(val: UInt64): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
-
-//------------------------------------------------------------------------------
 
 Function HashLen16(u,v: UInt64): UInt64; overload;{$IFDEF CanInline} inline;{$ENDIF}
 Function HashLen16(u,v,mul: UInt64): UInt64; overload;
 
-Function _mm_crc32_u64(crc,v: UInt64): UInt64;{$IFDEF CanInline} inline;{$ENDIF}
+{===============================================================================
+    Test constants
+===============================================================================}
+
+{$IF Defined(FPC) and (FPC_FULLVERSION < 30000)}
+const
+  _tk0 = UInt64($c3a5c85c97cb3127);
+  kSeed0 = UInt64(1234567);
+  kSeed1 = UInt64(_tk0);
+
+  tk0: UInt64 = _tk0;
+{$ELSE}
+const
+  tk0 = UInt64($c3a5c85c97cb3127);
+  kSeed0 = UInt64(1234567);
+  kSeed1 = UInt64(k0);
+{$IFEND}
+
+{===============================================================================
+    CRC32 intrinsic - declaration
+===============================================================================}
+
+Function _mm_crc32_u64(crc,v: UInt64): UInt64;{$IF Defined(CanInline) and Defined(FPC)} inline;{$IFEND}
 
 implementation
 
 uses
   BitOps;
+
+{$IFDEF FPC_DisableWarns}
+  {$DEFINE FPCDWM}
+  {$DEFINE W4055:={$WARN 4055 OFF}} // Conversion between ordinals and pointers is not portable
+{$ENDIF}
+
+{===============================================================================
+    common types - implementation
+===============================================================================}
 
 Function UInt128Make(Low,High: UInt64): UInt128;
 begin
@@ -146,32 +202,79 @@ b := b * kMul;
 Result := b;
 end;
 
-//==============================================================================
+{===============================================================================
+    data manipulation functions - implementation
+===============================================================================}
+
+Function EndianSwap(x: UInt32): UInt32;
+begin
+Result := BitOps.EndianSwap(x);
+end;
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Function EndianSwap(x: UInt64): UInt64;
+begin
+Result := BitOps.EndianSwap(x);
+end;
+
+//------------------------------------------------------------------------------
+
+procedure SWAP(var a,b: UInt64);
+var
+  Temp: UInt64;
+begin
+Temp := a;
+a := b;
+b := Temp;
+end;
+
+//------------------------------------------------------------------------------
+
+Function PTR_ADVANCE(const Ptr: Pointer; Offset: PtrUInt): Pointer;
+begin
+{$IFDEF FPCDWM}{$PUSH}W4055{$ENDIF}
+Result := Pointer(PtrUInt(Ptr) + Offset);
+{$IFDEF FPCDWM}{$POP}{$ENDIF}
+end;
+
+//------------------------------------------------------------------------------
+
+procedure PTR_ADVANCEVAR(var Ptr: Pointer; Offset: PtrUInt);
+begin
+{$IFDEF FPCDWM}{$PUSH}W4055{$ENDIF}
+Ptr := Pointer(PtrUInt(Ptr) + Offset);
+{$IFDEF FPCDWM}{$POP}{$ENDIF}
+end;
+
+{===============================================================================
+    data loading functions - implementation
+===============================================================================}
 
 Function UNALIGNED_LOAD32(Ptr: Pointer): UInt32;
 begin
-Move(Ptr^,Result,SizeOf(Result));
+Move(Ptr^,Addr(Result)^,SizeOf(Result));
 end;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Function UNALIGNED_LOAD32(Ptr: Pointer; Offset: PtrUInt): UInt32;
 begin
-Move(PTR_ADVANCE(Ptr,Offset)^,Result,SizeOf(Result));
+Move(PTR_ADVANCE(Ptr,Offset)^,Addr(Result)^,SizeOf(Result));
 end;
 
 //------------------------------------------------------------------------------
 
 Function UNALIGNED_LOAD64(Ptr: Pointer): UInt64;
 begin
-Move(Ptr^,Result,SizeOf(Result));
+Move(Ptr^,Addr(Result)^,SizeOf(Result));
 end;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 Function UNALIGNED_LOAD64(Ptr: Pointer; Offset: PtrUInt): UInt64;
 begin
-Move(PTR_ADVANCE(Ptr,Offset)^,Result,SizeOf(Result));
+Move(PTR_ADVANCE(Ptr,Offset)^,Addr(Result)^,SizeOf(Result));
 end;
 
 //------------------------------------------------------------------------------
@@ -224,46 +327,71 @@ begin
 Result := uint64_in_expected_order(UNALIGNED_LOAD64(Ptr,Offset));
 end;
 
-//==============================================================================
+{===============================================================================
+    32bit hash functions - implementation
+===============================================================================}
 
-Function EndianSwap(x: UInt32): UInt32;
+Function fmix(h: UInt32): UInt32;
 begin
-Result := BitOps.EndianSwap(x);
-end;
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-Function EndianSwap(x: UInt64): UInt64;
-begin
-Result := BitOps.EndianSwap(x);
+h := h xor (h shr 16);
+h := h * $85ebca6b;
+h := h xor (h shr 13);
+h := h * $c2b2ae35;
+h := h xor (h shr 16);
+Result := h;
 end;
 
 //------------------------------------------------------------------------------
 
-procedure SWAP(var a,b: UInt64);
+Function Rotate32(val: UInt32; shift: Integer): UInt32;
+begin
+// Avoid shifting by 32: doing so yields an undefined result.
+If shift = 0 then
+  Result := val
+else
+  Result := ROR(Val,Byte(Shift));
+end;
+
+//------------------------------------------------------------------------------
+
+procedure PERMUTE3(var a,b,c: UInt32); overload;
+var
+  Temp: UInt32;
+begin
+Temp := c;
+c := b;
+b := a;
+a := Temp;
+end;
+
+//   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---
+
+procedure PERMUTE3(var a,b,c: UInt64); overload;
 var
   Temp: UInt64;
 begin
-Temp := a;
-a := b;
-b := Temp;
+Temp := c;
+c := b;
+b := a;
+a := Temp;
 end;
 
 //------------------------------------------------------------------------------
 
-Function PTR_ADVANCE(const Ptr: Pointer; Offset: PtrUInt): Pointer;
+Function Mur(a,h: UInt32): UInt32;
 begin
-Result := Pointer(PtrUInt(Ptr) + Offset);
+// Helper from Murmur3 for combining two 32-bit values.
+a := a * c1;
+a := Rotate32(a,17);
+a := a * c2;
+h := h xor a;
+h := Rotate32(h,19);
+Result := h * 5 + $e6546b64;
 end;
 
-//------------------------------------------------------------------------------
-
-procedure PTR_ADVANCEVAR(var Ptr: Pointer; Offset: PtrUInt);
-begin
-Ptr := Pointer(PtrUInt(Ptr) + Offset);
-end;
-
-//==============================================================================
+{===============================================================================
+    64bit+ hash functions - implementation
+===============================================================================}
 
 Function Rotate(val: UInt64; shift: Integer): UInt64;
 begin
@@ -297,7 +425,7 @@ end;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-Function HashLen16(u,v,mul: UInt64): UInt64; overload;
+Function HashLen16(u,v,mul: UInt64): UInt64;
 var
   a,b:  UInt64;
 begin
@@ -310,7 +438,12 @@ b := b * mul;
 Result := b;
 end;
 
-//==============================================================================
+{===============================================================================
+    CRC32 intrinsic - implementation
+===============================================================================}
+{-------------------------------------------------------------------------------
+    CRC32 intrinsic - internals
+-------------------------------------------------------------------------------}
 
 // Software implemntation of the SSE4.2 intrinsic
 Function _mm_crc32_u64_pas(crc,v: UInt64): UInt64;
@@ -362,7 +495,6 @@ end;
 //------------------------------------------------------------------------------
 
 {$IFNDEF PurePascal}
-
 Function _mm_crc32_u64_asm(crc,v: UInt64): UInt64; register; assembler;
 asm
 {$IFDEF x64}
@@ -382,7 +514,6 @@ asm
     XOR     EDX,  EDX
 {$ENDIF}
 end;
-
 {$ENDIF}
 
 //------------------------------------------------------------------------------
@@ -390,63 +521,20 @@ end;
 var
   _mm_crc32_u64_var:  Function(crc,v: UInt64): UInt64;
 
+{-------------------------------------------------------------------------------
+    CRC32 intrinsic - public part
+-------------------------------------------------------------------------------}
+
 Function _mm_crc32_u64(crc,v: UInt64): UInt64;
 begin
 Result := _mm_crc32_u64_var(crc,v);
 end;
 
-Function fmix(h: UInt32): UInt32;
-begin
-h := h xor (h shr 16);
-h := h * $85ebca6b;
-h := h xor (h shr 13);
-h := h * $c2b2ae35;
-h := h xor (h shr 16);
-Result := h;
-end;
+{-------------------------------------------------------------------------------
+    CRC32 intrinsic - initialization
+-------------------------------------------------------------------------------}
 
 
-Function Rotate32(val: UInt32; shift: Integer): UInt32;
-begin
-// Avoid shifting by 32: doing so yields an undefined result.
-If shift = 0 then
-  Result := val
-else
-  Result := ROR(Val,Byte(Shift));
-end;
-
-procedure PERMUTE3(var a,b,c: UInt32); overload;
-var
-  Temp: UInt32;
-begin
-Temp := c;
-c := b;
-b := a;
-a := Temp;
-end;
-
-//   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---   ---
-
-procedure PERMUTE3(var a,b,c: UInt64); overload;
-var
-  Temp: UInt64;
-begin
-Temp := c;
-c := b;
-b := a;
-a := Temp;
-end;
-
-Function Mur(a,h: UInt32): UInt32;
-begin
-// Helper from Murmur3 for combining two 32-bit values.
-a := a * c1;
-a := Rotate32(a,17);
-a := a * c2;
-h := h xor a;
-h := Rotate32(h,19);
-Result := h * 5 + $e6546b64;
-end;
 
 initialization
   _mm_crc32_u64_var := _mm_crc32_u64_pas; {$message 'todo'}

@@ -11,13 +11,9 @@ implementation
 uses
   SysUtils,   
   AuxTypes,
-  CITY_Common, CITY_1_1_0;
+  CITY_Common, CITY_1_1_1;
 
 const
-  k0 = UInt64($c3a5c85c97cb3127);
-  kSeed0 = UInt64(1234567);
-  kSeed1 = UInt64(k0);
-
   kSeed128: UInt128 = (First: kSeed0; Second: kSeed1);
 
   kDataSize = Integer(1) shl 20;
@@ -41,8 +37,8 @@ For i := 0 to Pred(kDataSize) do
   begin
     a := a + b;
     b := b + a;
-    a := (a xor (a shr 41)) * k0;
-    b := (b xor (b shr 41)) * k0 + i;
+    a := (a xor (a shr 41)) * tk0;
+    b := (b xor (b shr 41)) * tk0 + i;
     u := UInt8(b shr 37);
     data[i] := u;
   end;
