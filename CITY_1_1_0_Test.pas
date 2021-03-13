@@ -11,9 +11,9 @@
 
     Implementation of testing suite for CITY hash version 1.1.0.
 
-  Version 2.0 (2021-03-10) [WIP]
+  Version 2.0 (2021-03-13)
 
-  Last change 2021-03-10
+  Last change 2021-03-13
 
   ©2016-2021 František Milt
 
@@ -32,12 +32,17 @@
       github.com/TheLazyTomcat/Lib.CityHash
 
   Dependencies:
-    AuxTypes    - github.com/TheLazyTomcat/Lib.AuxTypes
-    BitOps      - github.com/TheLazyTomcat/Lib.BitOps
-  * SimpleCPUID - github.com/TheLazyTomcat/Lib.SimpleCPUID
+    AuxTypes           - github.com/TheLazyTomcat/Lib.AuxTypes
+    AuxClasses         - github.com/TheLazyTomcat/Lib.AuxClasses
+    UInt64Utils        - github.com/TheLazyTomcat/Lib.UInt64Utils
+    StrRect            - github.com/TheLazyTomcat/Lib.StrRect
+    BitOps             - github.com/TheLazyTomcat/Lib.BitOps
+    StaticMemoryStream - github.com/TheLazyTomcat/Lib.StaticMemoryStream
+  * SimpleCPUID        - github.com/TheLazyTomcat/Lib.SimpleCPUID
+    HashBase           - github.com/TheLazyTomcat/Lib.HashBase  
 
   SimpleCPUID is required only when PurePascal symbol is not defined.
-  Also, it might be needed by BitOps library, see there for details
+  Also, it might be needed by BitOps library, see there for details.
 
 ===============================================================================}
 unit CITY_1_1_0_Test;
