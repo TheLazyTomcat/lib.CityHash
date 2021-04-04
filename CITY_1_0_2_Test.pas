@@ -11,9 +11,9 @@
 
     Implementation of testing suite for CITY hash version 1.0.2.
 
-  Version 2.0 (2021-03-13)
+  Version 2.0.1 (2021-04-04)
 
-  Last change 2021-03-13
+  Last change 2021-04-04
 
   ©2016-2021 František Milt
 

@@ -11,9 +11,9 @@
 
     Code common to all versions of the hash (functions, constants, ...)
 
-  Version 2.0 (2021-03-13)
+  Version 2.0.1 (2021-04-04)
 
-  Last change 2021-03-13
+  Last change 2021-04-04
 
   ©2016-2021 František Milt
 
@@ -222,7 +222,7 @@ Function _mm_crc32_u64(crc,v: UInt64): UInt64;{$IF Defined(CanInline) and Define
 type
   TUIM_CityHash_Function = (fnCRC32Intrinsic);
 
-  TUIM_CityHash_Implementation = (imNone,imPascal,imAssembly);
+  TUIM_CityHash_Implementation = (imNone,imPascal,imAssembly,imAccelerated);
 
   TUIM_CityHash_Implementations = set of TUIM_CityHash_Implementation;
 
@@ -698,7 +698,7 @@ end;
 Function UIM_CityHash_AvailableFuncImpl(Func: TUIM_CityHash_Function): TUIM_CityHash_Implementations;
 begin
 case Func of
-  fnCRC32Intrinsic: Result := [imNone,imPascal{$IFNDEF PurePascal},imAssembly{$ENDIF}];
+  fnCRC32Intrinsic: Result := [imNone,imPascal{$IFNDEF PurePascal},imAssembly,imAccelerated{$ENDIF}];
 else
   raise ECITYUnknownFunction.CreateFmt('UIM_CityHash_AvailableFuncImpl: Unknown function (%d).',[Ord(Func)]);
 end;
@@ -711,7 +711,7 @@ begin
 case Func of
   fnCRC32Intrinsic:
     If UIM_CheckASMSupport(Func) then
-      Result := [imNone,imPascal,imAssembly]
+      Result := [imNone,imPascal,imAssembly,imAccelerated]
     else
       Result := [imNone,imPascal];
 else
@@ -734,7 +734,7 @@ If Assigned(FuncVarAddr^) then
       Result := imPascal
   {$IFNDEF PurePascal}
     else If FuncVarAddr^ = UIM_CITYHASH_ASSEMBLY_IMPL[Func] then
-      Result := imAssembly
+      Result := imAccelerated
   {$ENDIF};
   end;
 end;
@@ -745,12 +745,15 @@ Function UIM_CityHash_SetFuncImpl(Func: TUIM_CityHash_Function; NewImpl: TUIM_Ci
 begin
 Result := UIM_CityHash_GetFuncImpl(Func);
 case NewImpl of
-  imPascal:   UIM_GetFunctionVarAddr(Func)^ := UIM_CITYHASH_PASCAL_IMPL[Func];
+  imPascal:
+    UIM_GetFunctionVarAddr(Func)^ := UIM_CITYHASH_PASCAL_IMPL[Func];
+  imAssembly,
+  imAccelerated:
 {$IFDEF PurePascal}
-  imAssembly: UIM_GetFunctionVarAddr(Func)^ := UIM_CITYHASH_PASCAL_IMPL[Func];
+    UIM_GetFunctionVarAddr(Func)^ := UIM_CITYHASH_PASCAL_IMPL[Func];
 {$ELSE}
-  imAssembly: UIM_GetFunctionVarAddr(Func)^ := UIM_CITYHASH_ASSEMBLY_IMPL[Func];
-{$ENDIF}
+    UIM_GetFunctionVarAddr(Func)^ := UIM_CITYHASH_ASSEMBLY_IMPL[Func];
+{$ENDIF}   
 else
  {imNone}
   UIM_GetFunctionVarAddr(Func)^ := nil;
@@ -767,7 +770,7 @@ var
 begin
 For i := Low(TUIM_CityHash_Function) to High(TUIM_CityHash_Function) do
   If UIM_CheckASMSupport(i) then
-    UIM_CityHash_SetFuncImpl(i,imAssembly)
+    UIM_CityHash_SetFuncImpl(i,imAccelerated)
   else
     UIM_CityHash_SetFuncImpl(i,imPascal);
 end;
