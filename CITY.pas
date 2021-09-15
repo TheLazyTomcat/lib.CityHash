@@ -148,10 +148,10 @@ type
   calculation - it is here because different historical versions can and will
   produce different results.
 
-  verDefault correspond to verCITY111 - this will, unlike in case of verLatest,
+  verDefault corresponds to verCITY111 - this will, unlike in case of verLatest,
   never change in the future.
   varLatest will always point to the latest implemented version, and therefore
-  change in the future.
+  might change in the future.
 
     WARNING - not all widths (32bit, 64bit, 128bit, ...) of the city hash
               were implemented from the first version!
@@ -160,8 +160,8 @@ type
                   verCITY103,verCITY110,verCITY111);
 
 {
-  TCITYVariant can be used to select which variant (with zero, one or two seeds)
-  of the hash to use for calculation.
+  TCITYVariant can be used to select which variant (with no seed, one seed or
+  two seeds) of the hash to use for calculation.
 
     WARNING - not all varians are supported by different widths and versions
               of the city hash.
@@ -500,8 +500,8 @@ begin
 inherited CreateAndInitFrom(Hash);
 If Hash is TCityHash then
   begin
-    fCityVersion := TCityHash(Hash).CityVersion;
-    fCityVariant := TCityHash(Hash).CityVariant;
+    CityVersion := TCityHash(Hash).CityVersion;
+    CityVariant := TCityHash(Hash).CityVariant;
   end
 else raise ECITYIncompatibleClass.CreateFmt('TCityHash.CreateAndInitFrom: Incompatible class (%s).',[Hash.ClassName]);
 end;
