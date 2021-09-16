@@ -35,9 +35,9 @@
     WARNING - version of this library does not correlate with version of
               implemented and used version of the CITY hash!
 
-  Version 2.0.1 (2021-04-04)
+  Version 2.1 (2021-09-16)
 
-  Last change 2021-04-04
+  Last change 2021-09-16
 
   ©2016-2021 František Milt
 
@@ -159,6 +159,8 @@ type
   TCITYVersion = (verDefault,verLatest,verCITY100,verCITY101,verCITY102,
                   verCITY103,verCITY110,verCITY111);
 
+  TCITYVersions = set of TCITYVersion;
+
 {
   TCITYVariant can be used to select which variant (with no seed, one seed or
   two seeds) of the hash to use for calculation.
@@ -167,6 +169,8 @@ type
               of the city hash.
 }
   TCITYVariant = (varPlain,varSeed,varSeeds);
+
+  TCITYVariants = set of TCITYVariant;
 
 {===============================================================================
 --------------------------------------------------------------------------------
@@ -184,9 +188,12 @@ type
     procedure SetCityVersion(Value: TCITYVersion); virtual;
     procedure SetCityVariant(Value: TCITYVariant); virtual;
     procedure Initialize; override;
+    procedure CheckVersionAndVariant; virtual;
   public
     class Function HashEndianness: THashEndianness; override;
     class Function HashFinalization: Boolean; override;
+    class Function CityVersionsSupported: TCITYVersions; virtual; abstract;
+    class Function CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants; virtual; abstract;
     constructor CreateAndInitFrom(Hash: THashBase); override;
     property CityVersion: TCITYVersion read fCityVersion write SetCityVersion;
     property CityVariant: TCityVariant read fCityVariant write SetCityVariant;
@@ -205,11 +212,11 @@ type
   protected
     fCity32:  TCity32Sys;
     Function GetCity32: TCity32;
-    procedure SetCityVersion(Value: TCITYVersion); override;
-    procedure SetCityVariant(Value: TCITYVariant); override;
     procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
     procedure Initialize; override;
   public
+    class Function CityVersionsSupported: TCITYVersions; override;
+    class Function CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants; override;
     class Function City32ToSys(City32: TCity32): TCity32Sys; virtual;
     class Function City32FromSys(City32: TCity32Sys): TCity32; virtual;
     class Function City32ToLE(City32: TCity32): TCity32; virtual;
@@ -249,6 +256,8 @@ type
     procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
     procedure Initialize; override;
   public
+    class Function CityVersionsSupported: TCITYVersions; override;
+    class Function CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants; override;
     class Function City64ToSys(City64: TCity64): TCity64Sys; virtual;
     class Function City64FromSys(City64: TCity64Sys): TCity64; virtual;
     class Function City64ToLE(City64: TCity64): TCity64; virtual;
@@ -275,20 +284,18 @@ type
 
 {===============================================================================
 --------------------------------------------------------------------------------
-                                  TCity128Hash
+                                TCity128HashBase
 --------------------------------------------------------------------------------
 ===============================================================================}
 {===============================================================================
-    TCity128Hash - class declaration
+    TCity128HashBase - class declaration
 ===============================================================================}
 type
-  TCity128Hash = class(TCityHash)
+  TCity128HashBase = class(TCityHash)
   protected
     fCity128: TCity128Sys;
     fSeed:    UInt128;
     Function GetCity128: TCity128;
-    procedure SetCityVariant(Value: TCITYVariant); override;
-    procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
     procedure Initialize; override;
   public
     class Function City128ToSys(City128: TCity128): TCity128Sys; virtual;
@@ -298,7 +305,6 @@ type
     class Function City128FromLE(City128: TCity128): TCity128; virtual;
     class Function City128FromBE(City128: TCity128): TCity128; virtual;
     class Function HashSize: TMemSize; override;
-    class Function HashName: String; override;
     constructor CreateAndInitFrom(Hash: THashBase); overload; override;
     constructor CreateAndInitFrom(Hash: TCity128); overload; virtual;
     procedure Init; override;
@@ -315,6 +321,24 @@ type
 
 {===============================================================================
 --------------------------------------------------------------------------------
+                                  TCity128Hash
+--------------------------------------------------------------------------------
+===============================================================================}
+{===============================================================================
+    TCity128Hash - class declaration
+===============================================================================}
+type
+  TCity128Hash = class(TCity128HashBase)
+  protected
+    procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
+  public
+    class Function CityVersionsSupported: TCITYVersions; override;
+    class Function CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants; override;
+    class Function HashName: String; override;    
+  end;
+
+{===============================================================================
+--------------------------------------------------------------------------------
                                 TCityCRC128Hash
 --------------------------------------------------------------------------------
 ===============================================================================}
@@ -322,13 +346,14 @@ type
     TCityCRC128Hash - class declaration
 ===============================================================================}
 type
-  TCityCRC128Hash = class(TCity128Hash)
+  TCityCRC128Hash = class(TCity128HashBase)
   protected
     Function GetHashImplementation: THashImplementation; override;
     procedure SetHashImplementation(Value: THashImplementation); override;
-    procedure SetCityVersion(Value: TCITYVersion); override;
     procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
   public
+    class Function CityVersionsSupported: TCITYVersions; override;
+    class Function CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants; override;
     class Function HashImplementationsAvailable: THashImplementations; override;
     class Function HashImplementationsSupported: THashImplementations; override;
     class Function HashName: String; override;
@@ -336,14 +361,14 @@ type
 
 {===============================================================================
 --------------------------------------------------------------------------------
-                                  TCity256Hash
+                                TCity256HashBase
 --------------------------------------------------------------------------------
 ===============================================================================}
 {===============================================================================
-    TCity256Hash - class declaration
+    TCity256HashBase - class declaration
 ===============================================================================}
 type
-  TCity256Hash = class(TCityHash)
+  TCity256HashBase = class(TCityHash)
     protected
     fCity256: TCity256Sys;
     Function GetCity256: TCity256;
@@ -356,7 +381,6 @@ type
     class Function City256FromLE(City256: TCity256): TCity256; virtual;
     class Function City256FromBE(City256: TCity256): TCity256; virtual;
     class Function HashSize: TMemSize; override;
-    class Function HashName: String; override;
     constructor CreateAndInitFrom(Hash: THashBase); overload; override;
     constructor CreateAndInitFrom(Hash: TCity256); overload; virtual;
     procedure Init; override;
@@ -379,14 +403,14 @@ type
     TCityCRC256Hash - class declaration
 ===============================================================================}
 type
-  TCityCRC256Hash = class(TCity256Hash)
+  TCityCRC256Hash = class(TCity256HashBase)
   protected
     Function GetHashImplementation: THashImplementation; override;
     procedure SetHashImplementation(Value: THashImplementation); override;
-    procedure SetCityVersion(Value: TCITYVersion); override;  
-    procedure SetCityVariant(Value: TCITYVariant); override;  
     procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
   public
+    class Function CityVersionsSupported: TCITYVersions; override;
+    class Function CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants; override;
     class Function HashImplementationsAvailable: THashImplementations; override;
     class Function HashImplementationsSupported: THashImplementations; override;
     class Function HashName: String; override;
@@ -458,14 +482,20 @@ uses
 
 procedure TCityHash.SetCityVersion(Value: TCITYVersion);
 begin
-fCityVersion := Value;
+If Value in CityVersionsSupported then
+  fCityVersion := Value
+else
+  raise ECITYUnsupportedVersion.CreateFmt('TCityHash.SetCityVersion: Unsupported version (%d).',[Ord(Value)]);
 end;
 
 //------------------------------------------------------------------------------
 
 procedure TCityHash.SetCityVariant(Value: TCITYVariant);
 begin
-fCityVariant := Value;
+If Value in CityVariantsSupported(fCityVersion) then
+  fCityVariant := Value
+else
+  raise ECITYUnsupportedVariant.CreateFmt('TCityHash.SetCityVariant: Unsupported variant (%d).',[Ord(Value)]);
 end;
 
 //------------------------------------------------------------------------------
@@ -475,6 +505,18 @@ begin
 inherited;
 fCityVersion := verDefault;
 fCityVariant := varPlain;
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TCityHash.CheckVersionAndVariant;
+begin
+If not(fCityVersion in CityVersionsSupported) then
+  raise ECITYUnsupportedVersion.CreateFmt('%s.CheckVersionAndVariant: Unsupported version (%d).',
+    [Self.ClassName,Ord(fCityVersion)]);
+If not(fCityVariant in CityVariantsSupported(fCityVersion)) then
+  raise ECITYUnsupportedVariant.CreateFmt('%s.CheckVersionAndVariant: Unsupported variant (%d) for version %d.',
+    [Self.ClassName,Ord(fCityVariant),Ord(fCityVersion)]);   
 end;
 
 {-------------------------------------------------------------------------------
@@ -543,40 +585,15 @@ end;
     TCity32Hash - protected methods
 -------------------------------------------------------------------------------}
 
-procedure TCity32Hash.SetCityVersion(Value: TCITYVersion);
-begin
-If Value in [verDefault,verLatest,verCITY110,verCITY111] then
-  inherited SetCityVersion(Value)
-else
-  raise ECITYUnsupportedVersion.CreateFmt('TCity32Hash.SetCityVersion: Unsupported version (%d).',[Ord(Value)]);
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TCity32Hash.SetCityVariant(Value: TCITYVariant);
-begin
-If Value = varPlain then
-  inherited SetCityVariant(Value)
-else
-  raise ECITYUnsupportedVariant.CreateFmt('TCity32Hash.SetCityVariant: Unsupported variant (%d).',[Ord(Value)]);
-end;
-
-//------------------------------------------------------------------------------
-
 procedure TCity32Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
 begin
-// version should be checked first
-If fCityVersion in [verCITY110,verDefault,verLatest,verCITY111] then
-  If fCityVariant = varPlain then
-    case fCityVersion of
-      verCITY110: fCity32 := CITY_1_1_0.CityHash32(Memory,Count);
-      verDefault,
-      verLatest,
-      verCITY111: fCity32 := CITY_1_1_1.CityHash32(Memory,Count);
-    end
-  else raise ECITYUnsupportedVariant.CreateFmt('TCity32Hash.CalculateHash: Unsupported variant (%d) for version %d.',
-                                               [Ord(fCityVariant),Ord(fCityVersion)])
-else raise ECITYUnsupportedVersion.CreateFmt('TCity32Hash.CalculateHash: Unsupported version (%d).',[Ord(fCityVersion)]);
+CheckVersionAndVariant;
+case fCityVersion of
+  verCITY110: fCity32 := CITY_1_1_0.CityHash32(Memory,Count);
+  verDefault,
+  verLatest,
+  verCITY111: fCity32 := CITY_1_1_1.CityHash32(Memory,Count);
+end;
 end;
 
 //------------------------------------------------------------------------------
@@ -590,6 +607,27 @@ end;
 {-------------------------------------------------------------------------------
     TCity32Hash - public methods
 -------------------------------------------------------------------------------}
+
+class Function TCity32Hash.CityVersionsSupported: TCITYVersions;
+begin
+Result := [verCITY110,verDefault,verLatest,verCITY111];
+end;
+
+//------------------------------------------------------------------------------
+
+class Function TCity32Hash.CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants;
+begin
+case CityVersion of
+  verDefault,
+  verLatest,
+  verCITY110,
+  verCITY111: Result := [varPlain];
+else
+  Result := [];
+end;
+end;
+
+//------------------------------------------------------------------------------
 
 class Function TCity32Hash.City32ToSys(City32: TCity32): TCity32Sys;
 begin
@@ -793,45 +831,41 @@ end;
 
 procedure TCity64Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
 begin
-If fCityVersion in [verDefault,verLatest,verCITY100,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111] then
-  If fCityVariant in [varPlain,varSeed,varSeeds] then
-    case fCityVersion of
-      verCITY100: case fCityVariant of
-                    varPlain: fCity64 := CITY_1_0_0.CityHash64(Memory,Count);
-                    varSeed:  fCity64 := CITY_1_0_0.CityHash64WithSeed(Memory,Count,fSeed0);
-                    varSeeds: fCity64 := CITY_1_0_0.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
-                  end;
-      verCITY101: case fCityVariant of
-                    varPlain: fCity64 := CITY_1_0_1.CityHash64(Memory,Count);
-                    varSeed:  fCity64 := CITY_1_0_1.CityHash64WithSeed(Memory,Count,fSeed0);
-                    varSeeds: fCity64 := CITY_1_0_1.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
-                  end;
-      verCITY102: case fCityVariant of
-                    varPlain: fCity64 := CITY_1_0_2.CityHash64(Memory,Count);
-                    varSeed:  fCity64 := CITY_1_0_2.CityHash64WithSeed(Memory,Count,fSeed0);
-                    varSeeds: fCity64 := CITY_1_0_2.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
-                  end;
-      verCITY103: case fCityVariant of
-                    varPlain: fCity64 := CITY_1_0_3.CityHash64(Memory,Count);
-                    varSeed:  fCity64 := CITY_1_0_3.CityHash64WithSeed(Memory,Count,fSeed0);
-                    varSeeds: fCity64 := CITY_1_0_3.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
-                  end;
-      verCITY110: case fCityVariant of
-                    varPlain: fCity64 := CITY_1_1_0.CityHash64(Memory,Count);
-                    varSeed:  fCity64 := CITY_1_1_0.CityHash64WithSeed(Memory,Count,fSeed0);
-                    varSeeds: fCity64 := CITY_1_1_0.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
-                  end;
-      verDefault,
-      verLatest,
-      verCITY111: case fCityVariant of
-                    varPlain: fCity64 := CITY_1_1_1.CityHash64(Memory,Count);
-                    varSeed:  fCity64 := CITY_1_1_1.CityHash64WithSeed(Memory,Count,fSeed0);
-                    varSeeds: fCity64 := CITY_1_1_1.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
-                  end;
-    end
-  else raise ECITYUnsupportedVariant.CreateFmt('TCity64Hash.CalculateHash: Unsupported variant (%d) for version %d.',
-                                               [Ord(fCityVariant),Ord(fCityVersion)])
-else raise ECITYUnsupportedVersion.CreateFmt('TCity64Hash.CalculateHash: Unsupported version (%d).',[Ord(fCityVersion)]);
+CheckVersionAndVariant;  
+case fCityVersion of
+  verCITY100: case fCityVariant of
+                varPlain: fCity64 := CITY_1_0_0.CityHash64(Memory,Count);
+                varSeed:  fCity64 := CITY_1_0_0.CityHash64WithSeed(Memory,Count,fSeed0);
+                varSeeds: fCity64 := CITY_1_0_0.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
+              end;
+  verCITY101: case fCityVariant of
+                varPlain: fCity64 := CITY_1_0_1.CityHash64(Memory,Count);
+                varSeed:  fCity64 := CITY_1_0_1.CityHash64WithSeed(Memory,Count,fSeed0);
+                varSeeds: fCity64 := CITY_1_0_1.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
+              end;
+  verCITY102: case fCityVariant of
+                varPlain: fCity64 := CITY_1_0_2.CityHash64(Memory,Count);
+                varSeed:  fCity64 := CITY_1_0_2.CityHash64WithSeed(Memory,Count,fSeed0);
+                varSeeds: fCity64 := CITY_1_0_2.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
+              end;
+  verCITY103: case fCityVariant of
+                varPlain: fCity64 := CITY_1_0_3.CityHash64(Memory,Count);
+                varSeed:  fCity64 := CITY_1_0_3.CityHash64WithSeed(Memory,Count,fSeed0);
+                varSeeds: fCity64 := CITY_1_0_3.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
+              end;
+  verCITY110: case fCityVariant of
+                varPlain: fCity64 := CITY_1_1_0.CityHash64(Memory,Count);
+                varSeed:  fCity64 := CITY_1_1_0.CityHash64WithSeed(Memory,Count,fSeed0);
+                varSeeds: fCity64 := CITY_1_1_0.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
+              end;
+  verDefault,
+  verLatest,
+  verCITY111: case fCityVariant of
+                varPlain: fCity64 := CITY_1_1_1.CityHash64(Memory,Count);
+                varSeed:  fCity64 := CITY_1_1_1.CityHash64WithSeed(Memory,Count,fSeed0);
+                varSeeds: fCity64 := CITY_1_1_1.CityHash64WithSeeds(Memory,Count,fSeed0,fSeed1);
+              end;
+end;
 end;
 
 //------------------------------------------------------------------------------
@@ -845,6 +879,31 @@ end;
 {-------------------------------------------------------------------------------
     TCity64Hash - public methods
 -------------------------------------------------------------------------------}
+
+class Function TCity64Hash.CityVersionsSupported: TCITYVersions;
+begin
+Result := [verDefault,verLatest,verCITY100,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111];
+end;
+
+//------------------------------------------------------------------------------
+
+class Function TCity64Hash.CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants;
+begin
+case CityVersion of
+  verDefault,
+  verLatest,
+  verCITY100,
+  verCITY101,
+  verCITY102,
+  verCITY103,
+  verCITY110,
+  verCITY111: Result := [varPlain,varSeed,varSeeds];
+else
+  Result := [];
+end;
+end;
+
+//------------------------------------------------------------------------------
 
 class Function TCity64Hash.City64ToSys(City64: TCity64): TCity64Sys;
 begin
@@ -1005,14 +1064,14 @@ end;
 
 {===============================================================================
 --------------------------------------------------------------------------------
-                                  TCity128Hash
+                                TCity128HashBase
 --------------------------------------------------------------------------------
 ===============================================================================}
 {===============================================================================
-    TCity128Hash - class implementation
+    TCity128HashBase - class implementation
 ===============================================================================}
 {-------------------------------------------------------------------------------
-    TCity128Hash - utility functions
+    TCity128HashBase - utility functions
 -------------------------------------------------------------------------------}
 
 Function SwapEndian(Value: TCITY128Sys): TCITY128Sys; overload;
@@ -1029,146 +1088,89 @@ Result := TCITY128(SwapEndian(TCITY128Sys(Value)));
 end;
 
 {-------------------------------------------------------------------------------
-    TCity128Hash - private methods
+    TCity128HashBase - private methods
 -------------------------------------------------------------------------------}
 
-Function TCity128Hash.GetCity128: TCity128;
+Function TCity128HashBase.GetCity128: TCity128;
 begin
 Result := City128FromSys(fCity128);
 end;
 
 {-------------------------------------------------------------------------------
-    TCity128Hash - protected methods
+    TCity128HashBase - protected methods
 -------------------------------------------------------------------------------}
 
-procedure TCity128Hash.SetCityVariant(Value: TCITYVariant);
-begin
-If Value in [varPlain,varSeed] then
-  inherited SetCityVariant(Value)
-else
-  raise ECITYUnsupportedVariant.CreateFmt('TCity128Hash.SetCityVariant: Unsupported variant (%d).',[Ord(Value)]);
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TCity128Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
-begin
-If fCityVersion in [verDefault,verLatest,verCITY100,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111] then
-  If fCityVariant in [varPlain,varSeed] then
-    case fCityVersion of
-      verCITY100: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_0_0.CityHash128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_0_0.CityHash128WithSeed(Memory,Count,fSeed);
-                  end;
-      verCITY101: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_0_1.CityHash128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_0_1.CityHash128WithSeed(Memory,Count,fSeed);
-                  end;
-      verCITY102: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_0_2.CityHash128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_0_2.CityHash128WithSeed(Memory,Count,fSeed);
-                  end;
-      verCITY103: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_0_3.CityHash128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_0_3.CityHash128WithSeed(Memory,Count,fSeed);
-                  end;
-      verCITY110: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_1_0.CityHash128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_1_0.CityHash128WithSeed(Memory,Count,fSeed);
-                  end;
-      verDefault,
-      verLatest,
-      verCITY111: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_1_1.CityHash128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_1_1.CityHash128WithSeed(Memory,Count,fSeed);
-                  end;
-    end
-  else raise ECITYUnsupportedVariant.CreateFmt('TCity128Hash.CalculateHash: Unsupported variant (%d) for version %d.',
-                                             [Ord(fCityVariant),Ord(fCityVersion)])
-else raise ECITYUnsupportedVersion.CreateFmt('TCity128Hash.CalculateHash: Unsupported version (%d).',[Ord(fCityVersion)]);
-
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TCity128Hash.Initialize;
+procedure TCity128HashBase.Initialize;
 begin
 inherited;
 FillChar(fCity128,SizeOf(TCITY128Sys),0);
 end;
 
 {-------------------------------------------------------------------------------
-    TCity128Hash - public methods
+    TCity128HashBase - public methods
 -------------------------------------------------------------------------------}
 
-class Function TCity128Hash.City128ToSys(City128: TCity128): TCity128Sys;
+class Function TCity128HashBase.City128ToSys(City128: TCity128): TCity128Sys;
 begin
 Result := {$IFDEF ENDIAN_BIG}SwapEndian{$ENDIF}(TCity128Sys(City128));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity128Hash.City128FromSys(City128: TCity128Sys): TCity128;
+class Function TCity128HashBase.City128FromSys(City128: TCity128Sys): TCity128;
 begin
 Result := TCity128({$IFDEF ENDIAN_BIG}SwapEndian{$ENDIF}(City128));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity128Hash.City128ToLE(City128: TCity128): TCity128;
+class Function TCity128HashBase.City128ToLE(City128: TCity128): TCity128;
 begin
 Result := City128;
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity128Hash.City128ToBE(City128: TCity128): TCity128;
+class Function TCity128HashBase.City128ToBE(City128: TCity128): TCity128;
 begin
 Result := TCity128(SwapEndian(TCity128Sys(City128)));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity128Hash.City128FromLE(City128: TCity128): TCity128;
+class Function TCity128HashBase.City128FromLE(City128: TCity128): TCity128;
 begin
 Result := City128;
 end;
  
 //------------------------------------------------------------------------------
 
-class Function TCity128Hash.City128FromBE(City128: TCity128): TCity128;
+class Function TCity128HashBase.City128FromBE(City128: TCity128): TCity128;
 begin
 Result := TCity128(SwapEndian(TCity128Sys(City128)));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity128Hash.HashSize: TMemSize;
+class Function TCity128HashBase.HashSize: TMemSize;
 begin
 Result := SizeOf(TCITY128);
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity128Hash.HashName: String;
-begin
-Result := 'CITY-128';
-end;
-
-//------------------------------------------------------------------------------
-
-constructor TCity128Hash.CreateAndInitFrom(Hash: THashBase);
+constructor TCity128HashBase.CreateAndInitFrom(Hash: THashBase);
 begin
 inherited CreateAndInitFrom(Hash);
-If Hash is TCity128Hash then
-  fCity128 := TCity128Hash(Hash).City128Sys
+If Hash is TCity128HashBase then
+  fCity128 := TCity128HashBase(Hash).City128Sys
 else
-  raise ECITYIncompatibleClass.CreateFmt('TCity128Hash.CreateAndInitFrom: Incompatible class (%s).',[Hash.ClassName]);
+  raise ECITYIncompatibleClass.CreateFmt('TCity128HashBase.CreateAndInitFrom: Incompatible class (%s).',[Hash.ClassName]);
 end;
 
 //------------------------------------------------------------------------------
 
-constructor TCity128Hash.CreateAndInitFrom(Hash: TCity128);
+constructor TCity128HashBase.CreateAndInitFrom(Hash: TCity128);
 begin
 CreateAndInit;
 fCity128 := City128ToSys(Hash);
@@ -1176,7 +1178,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity128Hash.Init;
+procedure TCity128HashBase.Init;
 begin
 inherited;
 FillChar(fCity128,SizeOf(TCITY128Sys),0);
@@ -1184,27 +1186,27 @@ end;
 
 //------------------------------------------------------------------------------
 
-Function TCity128Hash.Compare(Hash: THashBase): Integer;
+Function TCity128HashBase.Compare(Hash: THashBase): Integer;
 begin
-If Hash is TCity128Hash then
+If Hash is TCity128HashBase then
   begin
-    Result := CompareUInt64(fCity128.High,TCity128Hash(Hash).City128Sys.High);
+    Result := CompareUInt64(fCity128.High,TCity128HashBase(Hash).City128Sys.High);
     If Result = 0 then
-      Result := CompareUInt64(fCity128.Low,TCity128Hash(Hash).City128Sys.Low);
+      Result := CompareUInt64(fCity128.Low,TCity128HashBase(Hash).City128Sys.Low);
   end
-else raise ECITYIncompatibleClass.CreateFmt('TCity128Hash.Compare: Incompatible class (%s).',[Hash.ClassName]);
+else raise ECITYIncompatibleClass.CreateFmt('TCity128HashBase.Compare: Incompatible class (%s).',[Hash.ClassName]);
 end;
 
 //------------------------------------------------------------------------------
 
-Function TCity128Hash.AsString: String;
+Function TCity128HashBase.AsString: String;
 begin
 Result := IntToHex(fCity128.High,16) + IntToHex(fCity128.Low,16);
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity128Hash.FromString(const Str: String);
+procedure TCity128HashBase.FromString(const Str: String);
 begin
 If Length(Str) > 0 then
   begin
@@ -1228,7 +1230,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity128Hash.FromStringDef(const Str: String; const Default: TCity128);
+procedure TCity128HashBase.FromStringDef(const Str: String; const Default: TCity128);
 begin
 inherited FromStringDef(Str,Default);
 If not TryFromString(Str) then
@@ -1237,7 +1239,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity128Hash.SaveToStream(Stream: TStream; Endianness: THashEndianness = heDefault);
+procedure TCity128HashBase.SaveToStream(Stream: TStream; Endianness: THashEndianness = heDefault);
 var
   Temp: TCity128;
 begin
@@ -1255,7 +1257,7 @@ end;
 //------------------------------------------------------------------------------
 
 {$IFDEF FPCDWM}{$PUSH}W5057{$ENDIF}
-procedure TCity128Hash.LoadFromStream(Stream: TStream; Endianness: THashEndianness = heDefault);
+procedure TCity128HashBase.LoadFromStream(Stream: TStream; Endianness: THashEndianness = heDefault);
 var
   Temp: TCity128;
 begin
@@ -1271,6 +1273,84 @@ end;
 end;
 {$IFDEF FPCDWM}{$POP}{$ENDIF}
 
+{===============================================================================
+--------------------------------------------------------------------------------
+                                  TCity128Hash
+--------------------------------------------------------------------------------
+===============================================================================}
+{===============================================================================
+    TCity128Hash - class implementation
+===============================================================================}
+{-------------------------------------------------------------------------------
+    TCity128Hash - protected methods
+-------------------------------------------------------------------------------}
+
+procedure TCity128Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
+begin
+CheckVersionAndVariant;
+case fCityVersion of
+  verCITY100: case fCityVariant of
+                varPlain: fCity128 := CITY_1_0_0.CityHash128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_0_0.CityHash128WithSeed(Memory,Count,fSeed);
+              end;
+  verCITY101: case fCityVariant of
+                varPlain: fCity128 := CITY_1_0_1.CityHash128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_0_1.CityHash128WithSeed(Memory,Count,fSeed);
+              end;
+  verCITY102: case fCityVariant of
+                varPlain: fCity128 := CITY_1_0_2.CityHash128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_0_2.CityHash128WithSeed(Memory,Count,fSeed);
+              end;
+  verCITY103: case fCityVariant of
+                varPlain: fCity128 := CITY_1_0_3.CityHash128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_0_3.CityHash128WithSeed(Memory,Count,fSeed);
+              end;
+  verCITY110: case fCityVariant of
+                varPlain: fCity128 := CITY_1_1_0.CityHash128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_1_0.CityHash128WithSeed(Memory,Count,fSeed);
+              end;
+  verDefault,
+  verLatest,
+  verCITY111: case fCityVariant of
+                varPlain: fCity128 := CITY_1_1_1.CityHash128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_1_1.CityHash128WithSeed(Memory,Count,fSeed);
+              end;
+end;
+end;
+
+{-------------------------------------------------------------------------------
+    TCity128Hash - public methods
+-------------------------------------------------------------------------------}
+
+class Function TCity128Hash.CityVersionsSupported: TCITYVersions;
+begin
+Result := [verDefault,verLatest,verCITY100,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111];
+end;
+
+//------------------------------------------------------------------------------
+
+class Function TCity128Hash.CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants;
+begin
+case CityVersion of
+  verDefault,
+  verLatest,
+  verCITY100,
+  verCITY101,
+  verCITY102,
+  verCITY103,
+  verCITY110,
+  verCITY111: Result := [varPlain,varSeed];
+else
+  Result := [];
+end;
+end;
+
+//------------------------------------------------------------------------------
+
+class Function TCity128Hash.HashName: String;
+begin
+Result := 'CITY-128';
+end;
 
 {===============================================================================
 --------------------------------------------------------------------------------
@@ -1313,52 +1393,62 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCityCRC128Hash.SetCityVersion(Value: TCITYVersion);
-begin
-If Value <> verCITY100 then
-  inherited SetCityVersion(Value)
-else
-  raise ECITYUnsupportedVersion.CreateFmt('TCityCRC128Hash.SetCityVersion: Unsupported version (%d).',[Ord(Value)]);
-end;
-
-//------------------------------------------------------------------------------
-
 procedure TCityCRC128Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
 begin
-If fCityVersion in [verDefault,verLatest,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111] then
-  If fCityVariant in [varPlain,varSeed] then
-    case fCityVersion of
-      verCITY101: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_0_1.CityHashCrc128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_0_1.CityHashCrc128WithSeed(Memory,Count,fSeed);
-                  end;
-      verCITY102: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_0_2.CityHashCrc128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_0_2.CityHashCrc128WithSeed(Memory,Count,fSeed);
-                  end;
-      verCITY103: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_0_3.CityHashCrc128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_0_3.CityHashCrc128WithSeed(Memory,Count,fSeed);
-                  end;
-      verCITY110: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_1_0.CityHashCrc128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_1_0.CityHashCrc128WithSeed(Memory,Count,fSeed);
-                  end;
-      verDefault,
-      verLatest,
-      verCITY111: case fCityVariant of
-                    varPlain: fCity128 := CITY_1_1_1.CityHashCrc128(Memory,Count);
-                    varSeed:  fCity128 := CITY_1_1_1.CityHashCrc128WithSeed(Memory,Count,fSeed);
-                  end;
-    end
-  else raise ECITYUnsupportedVariant.CreateFmt('TCityCRC128Hash.CalculateHash: Unsupported variant (%d) for version %d.',
-                                               [Ord(fCityVariant),Ord(fCityVersion)])
-else raise ECITYUnsupportedVersion.CreateFmt('TCityCRC128Hash.CalculateHash: Unsupported version (%d).',[Ord(fCityVersion)]);
+CheckVersionAndVariant;
+case fCityVersion of
+  verCITY101: case fCityVariant of
+                varPlain: fCity128 := CITY_1_0_1.CityHashCrc128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_0_1.CityHashCrc128WithSeed(Memory,Count,fSeed);
+              end;
+  verCITY102: case fCityVariant of
+                varPlain: fCity128 := CITY_1_0_2.CityHashCrc128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_0_2.CityHashCrc128WithSeed(Memory,Count,fSeed);
+              end;
+  verCITY103: case fCityVariant of
+                varPlain: fCity128 := CITY_1_0_3.CityHashCrc128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_0_3.CityHashCrc128WithSeed(Memory,Count,fSeed);
+              end;
+  verCITY110: case fCityVariant of
+                varPlain: fCity128 := CITY_1_1_0.CityHashCrc128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_1_0.CityHashCrc128WithSeed(Memory,Count,fSeed);
+              end;
+  verDefault,
+  verLatest,
+  verCITY111: case fCityVariant of
+                varPlain: fCity128 := CITY_1_1_1.CityHashCrc128(Memory,Count);
+                varSeed:  fCity128 := CITY_1_1_1.CityHashCrc128WithSeed(Memory,Count,fSeed);
+              end;
+end;
 end;
 
 {-------------------------------------------------------------------------------
     TCityCRC128Hash - public methods
 -------------------------------------------------------------------------------}
+
+class Function TCityCRC128Hash.CityVersionsSupported: TCITYVersions;
+begin
+Result := [verDefault,verLatest,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111];
+end;
+
+//------------------------------------------------------------------------------
+
+class Function TCityCRC128Hash.CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants;
+begin
+case CityVersion of
+  verDefault,
+  verLatest,
+  verCITY101,
+  verCITY102,
+  verCITY103,
+  verCITY110,
+  verCITY111: Result := [varPlain,varSeed];
+else
+  Result := [];
+end;
+end;
+
+//------------------------------------------------------------------------------
 
 class Function TCityCRC128Hash.HashImplementationsAvailable: THashImplementations;
 var
@@ -1400,14 +1490,14 @@ end;
 
 {===============================================================================
 --------------------------------------------------------------------------------
-                                  TCity256Hash
+                                TCity256HashBase
 --------------------------------------------------------------------------------
 ===============================================================================}
 {===============================================================================
-    TCity256Hash - class implementation
+    TCity256HashBase - class implementation
 ===============================================================================}
 {-------------------------------------------------------------------------------
-    TCity256Hash - utility functions
+    TCity256HashBase - utility functions
 -------------------------------------------------------------------------------}
 
 Function SwapEndian(Value: TCITY256Sys): TCITY256Sys; overload;
@@ -1426,96 +1516,89 @@ Result := TCITY256(SwapEndian(TCITY256Sys(Value)));
 end;
 
 {-------------------------------------------------------------------------------
-    TCity256Hash - private methods
+    TCity256HashBase - private methods
 -------------------------------------------------------------------------------}
 
-Function TCity256Hash.GetCity256: TCity256;
+Function TCity256HashBase.GetCity256: TCity256;
 begin
 Result := City256FromSys(fCity256);
 end;
 
 {-------------------------------------------------------------------------------
-    TCity256Hash - protected methods
+    TCity256HashBase - protected methods
 -------------------------------------------------------------------------------}
 
-procedure TCity256Hash.Initialize;
+procedure TCity256HashBase.Initialize;
 begin
 inherited;
 FillChar(fCity256,SizeOf(TCITY256Sys),0);
 end;
 
 {-------------------------------------------------------------------------------
-    TCity256Hash - public methods
+    TCity256HashBase - public methods
 -------------------------------------------------------------------------------}
 
-class Function TCity256Hash.City256ToSys(City256: TCity256): TCity256Sys;
+class Function TCity256HashBase.City256ToSys(City256: TCity256): TCity256Sys;
 begin
 Result := {$IFDEF ENDIAN_BIG}SwapEndian{$ENDIF}(TCity256Sys(City256));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity256Hash.City256FromSys(City256: TCity256Sys): TCity256;
+class Function TCity256HashBase.City256FromSys(City256: TCity256Sys): TCity256;
 begin
 Result := TCity256({$IFDEF ENDIAN_BIG}SwapEndian{$ENDIF}(City256));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity256Hash.City256ToLE(City256: TCity256): TCity256;
+class Function TCity256HashBase.City256ToLE(City256: TCity256): TCity256;
 begin
 Result := City256;
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity256Hash.City256ToBE(City256: TCity256): TCity256;
+class Function TCity256HashBase.City256ToBE(City256: TCity256): TCity256;
 begin
 Result := TCity256(SwapEndian(TCity256Sys(City256)));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity256Hash.City256FromLE(City256: TCity256): TCity256;
+class Function TCity256HashBase.City256FromLE(City256: TCity256): TCity256;
 begin
 Result := City256;
 end;
  
 //------------------------------------------------------------------------------
 
-class Function TCity256Hash.City256FromBE(City256: TCity256): TCity256;
+class Function TCity256HashBase.City256FromBE(City256: TCity256): TCity256;
 begin
 Result := TCity256(SwapEndian(TCity256Sys(City256)));
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity256Hash.HashSize: TMemSize;
+class Function TCity256HashBase.HashSize: TMemSize;
 begin
 Result := SizeOf(TCITY256);
 end;
 
 //------------------------------------------------------------------------------
 
-class Function TCity256Hash.HashName: String;
-begin
-Result := 'CITY-256';
-end;
-
-//------------------------------------------------------------------------------
-
-constructor TCity256Hash.CreateAndInitFrom(Hash: THashBase);
+constructor TCity256HashBase.CreateAndInitFrom(Hash: THashBase);
 begin
 inherited CreateAndInitFrom(Hash);
-If Hash is TCity256Hash then
-  fCity256 := TCity256Hash(Hash).City256Sys
+If Hash is TCity256HashBase then
+  fCity256 := TCity256HashBase(Hash).City256Sys
 else
-  raise ECITYIncompatibleClass.CreateFmt('TCity256Hash.CreateAndInitFrom: Incompatible class (%s).',[Hash.ClassName]);
+  raise ECITYIncompatibleClass.CreateFmt('TCity256HashBase.CreateAndInitFrom: Incompatible class (%s).',[Hash.ClassName]);
 end;
 
 //------------------------------------------------------------------------------
 
-constructor TCity256Hash.CreateAndInitFrom(Hash: TCity256);
+constructor TCity256HashBase.CreateAndInitFrom(Hash: TCity256);
 begin
 CreateAndInit;
 fCity256 := City256ToSys(Hash);
@@ -1523,7 +1606,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity256Hash.Init;
+procedure TCity256HashBase.Init;
 begin
 inherited;
 FillChar(fCity256,SizeOf(TCITY256Sys),0);
@@ -1531,25 +1614,25 @@ end;
 
 //------------------------------------------------------------------------------
 
-Function TCity256Hash.Compare(Hash: THashBase): Integer;
+Function TCity256HashBase.Compare(Hash: THashBase): Integer;
 var
   i:  Integer;
 begin
-If Hash is TCity256Hash then
+If Hash is TCity256HashBase then
   begin
     For i := High(TCITY256Sys) downto Low(TCITY256Sys) do
       begin
-        Result := CompareUInt64(fCity256[i],TCity256Hash(Hash).City256Sys[i]);
+        Result := CompareUInt64(fCity256[i],TCity256HashBase(Hash).City256Sys[i]);
         If Result <> 0 then
           Break{For i};
       end;
   end
-else raise ECITYIncompatibleClass.CreateFmt('TCity256Hash.Compare: Incompatible class (%s).',[Hash.ClassName]);
+else raise ECITYIncompatibleClass.CreateFmt('TCity256HashBase.Compare: Incompatible class (%s).',[Hash.ClassName]);
 end;
 
 //------------------------------------------------------------------------------
 
-Function TCity256Hash.AsString: String;
+Function TCity256HashBase.AsString: String;
 begin
 Result := IntToHex(fCity256[3],16) + IntToHex(fCity256[2],16) +
           IntToHex(fCity256[1],16) + IntToHex(fCity256[0],16);
@@ -1557,7 +1640,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity256Hash.FromString(const Str: String);
+procedure TCity256HashBase.FromString(const Str: String);
 begin
 If Length(Str) > 0 then
   begin
@@ -1581,7 +1664,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity256Hash.FromStringDef(const Str: String; const Default: TCity256);
+procedure TCity256HashBase.FromStringDef(const Str: String; const Default: TCity256);
 begin
 inherited FromStringDef(Str,Default);
 If not TryFromString(Str) then
@@ -1590,7 +1673,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCity256Hash.SaveToStream(Stream: TStream; Endianness: THashEndianness = heDefault);
+procedure TCity256HashBase.SaveToStream(Stream: TStream; Endianness: THashEndianness = heDefault);
 var
   Temp: TCity256;
 begin
@@ -1608,7 +1691,7 @@ end;
 //------------------------------------------------------------------------------
 
 {$IFDEF FPCDWM}{$PUSH}W5057{$ENDIF}
-procedure TCity256Hash.LoadFromStream(Stream: TStream; Endianness: THashEndianness = heDefault);
+procedure TCity256HashBase.LoadFromStream(Stream: TStream; Endianness: THashEndianness = heDefault);
 var
   Temp: TCity256;
 begin
@@ -1666,47 +1749,47 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure TCityCRC256Hash.SetCityVersion(Value: TCITYVersion);
-begin
-If Value <> verCITY100 then
-  inherited SetCityVersion(Value)
-else
-  raise ECITYUnsupportedVersion.CreateFmt('TCityCRC256Hash.SetCityVersion: Unsupported version (%d).',[Ord(Value)]);
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TCityCRC256Hash.SetCityVariant(Value: TCITYVariant);
-begin
-If Value = varPlain then
-  inherited SetCityVariant(Value)
-else
-  raise ECITYUnsupportedVariant.CreateFmt('TCityCRC256Hash.SetCityVariant: Unsupported variant (%d).',[Ord(Value)]);
-end;
-
-//------------------------------------------------------------------------------
-
 procedure TCityCRC256Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
 begin
-If fCityVersion in [verDefault,verLatest,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111] then
-  If fCityVariant = varPlain then
-    case fCityVersion of
-      verCITY101: CITY_1_0_1.CityHashCrc256(Memory,Count,fCity256);
-      verCITY102: CITY_1_0_2.CityHashCrc256(Memory,Count,fCity256);
-      verCITY103: CITY_1_0_3.CityHashCrc256(Memory,Count,fCity256);
-      verCITY110: CITY_1_1_0.CityHashCrc256(Memory,Count,fCity256);
-      verDefault,
-      verLatest,
-      verCITY111: CITY_1_1_1.CityHashCrc256(Memory,Count,fCity256);
-    end
-  else raise ECITYUnsupportedVariant.CreateFmt('TCityCRC256Hash.CalculateHash: Unsupported variant (%d) for version %d.',
-                                               [Ord(fCityVariant),Ord(fCityVersion)])
-else raise ECITYUnsupportedVersion.CreateFmt('TCityCRC256Hash.CalculateHash: Unsupported version (%d).',[Ord(fCityVersion)]);
+CheckVersionAndVariant;
+case fCityVersion of
+  verCITY101: CITY_1_0_1.CityHashCrc256(Memory,Count,fCity256);
+  verCITY102: CITY_1_0_2.CityHashCrc256(Memory,Count,fCity256);
+  verCITY103: CITY_1_0_3.CityHashCrc256(Memory,Count,fCity256);
+  verCITY110: CITY_1_1_0.CityHashCrc256(Memory,Count,fCity256);
+  verDefault,
+  verLatest,
+  verCITY111: CITY_1_1_1.CityHashCrc256(Memory,Count,fCity256);
+end;
 end;
 
 {-------------------------------------------------------------------------------
     TCityCRC256Hash - public methods
 -------------------------------------------------------------------------------}
+
+class Function TCityCRC256Hash.CityVersionsSupported: TCITYVersions;
+begin
+Result := [verDefault,verLatest,verCITY101,verCITY102,verCITY103,verCITY110,verCITY111];
+end;
+
+//------------------------------------------------------------------------------
+
+class Function TCityCRC256Hash.CityVariantsSupported(CityVersion: TCITYVersion): TCITYVariants;
+begin
+case CityVersion of
+  verDefault,
+  verLatest,
+  verCITY101,
+  verCITY102,
+  verCITY103,
+  verCITY110,
+  verCITY111: Result := [varPlain];
+else
+  Result := [];
+end;
+end;
+
+//------------------------------------------------------------------------------
 
 class Function TCityCRC256Hash.HashImplementationsAvailable: THashImplementations;
 var

@@ -11,9 +11,9 @@
 
     Code common to all versions of the hash (functions, constants, ...)
 
-  Version 2.0.1 (2021-04-04)
+  Version 2.1 (2021-09-16)
 
-  Last change 2021-04-04
+  Last change 2021-09-16
 
   ©2016-2021 František Milt
 
