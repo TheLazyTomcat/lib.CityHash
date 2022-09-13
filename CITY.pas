@@ -37,9 +37,9 @@
 
   Version 2.1 (2021-09-16)
 
-  Last change 2021-09-16
+  Last change 2022-09-13
 
-  ©2016-2021 František Milt
+  ©2016-2022 František Milt
 
   Contacts:
     František Milt: frantisek.milt@gmail.com
@@ -87,7 +87,7 @@ uses
   CITY_1_1_1;
 
 {===============================================================================
-    library exceptions
+    Library-specific exceptions
 ===============================================================================}
 type
   ECITYIncompatibleClass = class(ECITYException);
@@ -211,7 +211,7 @@ type
   TCity32Hash = class(TCityHash)
   protected
     fCity32:  TCity32Sys;
-    Function GetCity32: TCity32;
+    Function GetCity32: TCity32; virtual;
     procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
     procedure Initialize; override;
   public
@@ -252,7 +252,7 @@ type
     fCity64:  TCity64Sys;
     fSeed0:   UInt64;
     fSeed1:   UInt64;
-    Function GetCity64: TCity64;
+    Function GetCity64: TCity64; virtual;
     procedure CalculateHash(Memory: Pointer; Count: TMemSize); override;
     procedure Initialize; override;
   public
@@ -295,7 +295,7 @@ type
   protected
     fCity128: TCity128Sys;
     fSeed:    UInt128;
-    Function GetCity128: TCity128;
+    Function GetCity128: TCity128; virtual;
     procedure Initialize; override;
   public
     class Function City128ToSys(City128: TCity128): TCity128Sys; virtual;
@@ -369,9 +369,9 @@ type
 ===============================================================================}
 type
   TCity256HashBase = class(TCityHash)
-    protected
+  protected
     fCity256: TCity256Sys;
-    Function GetCity256: TCity256;
+    Function GetCity256: TCity256; virtual;
     procedure Initialize; override;
   public
     class Function City256ToSys(City256: TCity256): TCity256Sys; virtual;
@@ -573,7 +573,7 @@ Result := TCITY32(SwapEndian(TCITY32Sys(Value)));
 end;
 
 {-------------------------------------------------------------------------------
-    TCity32Hash - private methods
+    TCity32Hash - protected methods
 -------------------------------------------------------------------------------}
 
 Function TCity32Hash.GetCity32: TCity32;
@@ -581,9 +581,7 @@ begin
 Result := City32FromSys(fCity32);
 end;
 
-{-------------------------------------------------------------------------------
-    TCity32Hash - protected methods
--------------------------------------------------------------------------------}
+//------------------------------------------------------------------------------
 
 procedure TCity32Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
 begin
@@ -817,7 +815,7 @@ Result := TCITY64(SwapEndian(TCITY64Sys(Value)));
 end;
 
 {-------------------------------------------------------------------------------
-    TCity64Hash - private methods
+    TCity64Hash - protected methods
 -------------------------------------------------------------------------------}
 
 Function TCity64Hash.GetCity64: TCity64;
@@ -825,9 +823,7 @@ begin
 Result := City64FromSys(fCity64);
 end;
 
-{-------------------------------------------------------------------------------
-    TCity64Hash - protected methods
--------------------------------------------------------------------------------}
+//------------------------------------------------------------------------------
 
 procedure TCity64Hash.CalculateHash(Memory: Pointer; Count: TMemSize);
 begin
@@ -1088,7 +1084,7 @@ Result := TCITY128(SwapEndian(TCITY128Sys(Value)));
 end;
 
 {-------------------------------------------------------------------------------
-    TCity128HashBase - private methods
+    TCity128HashBase - protected methods
 -------------------------------------------------------------------------------}
 
 Function TCity128HashBase.GetCity128: TCity128;
@@ -1096,9 +1092,7 @@ begin
 Result := City128FromSys(fCity128);
 end;
 
-{-------------------------------------------------------------------------------
-    TCity128HashBase - protected methods
--------------------------------------------------------------------------------}
+//------------------------------------------------------------------------------
 
 procedure TCity128HashBase.Initialize;
 begin
@@ -1516,7 +1510,7 @@ Result := TCITY256(SwapEndian(TCITY256Sys(Value)));
 end;
 
 {-------------------------------------------------------------------------------
-    TCity256HashBase - private methods
+    TCity256HashBase - protected methods
 -------------------------------------------------------------------------------}
 
 Function TCity256HashBase.GetCity256: TCity256;
@@ -1524,9 +1518,7 @@ begin
 Result := City256FromSys(fCity256);
 end;
 
-{-------------------------------------------------------------------------------
-    TCity256HashBase - protected methods
--------------------------------------------------------------------------------}
+//------------------------------------------------------------------------------
 
 procedure TCity256HashBase.Initialize;
 begin
