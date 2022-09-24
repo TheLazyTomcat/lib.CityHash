@@ -11,9 +11,9 @@
 
   Version 2.1 (2021-09-16)
 
-  Last change 2021-09-16
+  Last change 2022-09-24
 
-  ©2016-2021 František Milt
+  ©2016-2022 František Milt
 
   Contacts:
     František Milt: frantisek.milt@gmail.com
@@ -64,7 +64,9 @@
 {$IFEND}
 
 {$IFDEF FPC}
-  {$MODE Delphi}
+  {$MODE ObjFPC}
+  {$MODESWITCH ClassicProcVars+}
+  {$MODESWITCH DuplicateLocals+}
   {$INLINE ON}
   {$DEFINE CanInline}
   {$IFNDEF PurePascal}
