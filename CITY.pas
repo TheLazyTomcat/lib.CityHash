@@ -68,11 +68,11 @@
   Library SimpleCPUID might also be required as an indirect dependency.
 
   Indirect dependencies:
+    AuxClasses         - github.com/TheLazyTomcat/Lib.AuxClasses
     AuxExceptions      - github.com/TheLazyTomcat/Lib.AuxExceptions
+    StaticMemoryStream - github.com/TheLazyTomcat/Lib.StaticMemoryStream
     StrRect            - github.com/TheLazyTomcat/Lib.StrRect
     WinFileInfo        - github.com/TheLazyTomcat/Lib.WinFileInfo
-    AuxClasses         - github.com/TheLazyTomcat/Lib.AuxClasses
-    StaticMemoryStream - github.com/TheLazyTomcat/Lib.StaticMemoryStream
 
 ===============================================================================}
 unit CITY;
